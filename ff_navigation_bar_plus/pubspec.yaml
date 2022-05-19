@@ -1,0 +1,17 @@
+name: ff_navigation_bar_plus
+description: Configurable bottom navigation bar with raised highlight and shadow
+version: 0.1.5
+homepage: https://github.com/hkloudou/darts/tree/main/ff_navigation_bar_plus
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  provider: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
