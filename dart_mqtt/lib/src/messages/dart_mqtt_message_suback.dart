@@ -27,7 +27,7 @@ class MqttMessageSuback extends MqttMessage {
   @override
   String toString() =>
       fixedHead.toString() +
-       "\x1b[39mId \x1b[0m" +
+      "\x1b[39mId \x1b[0m" +
       fixedHead.blue(msgid.toString().padRight(6)) +
       // "\x1b[39m, \x1b[0m" +
       _code();
