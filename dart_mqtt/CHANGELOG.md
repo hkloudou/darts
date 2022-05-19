@@ -1,0 +1,19 @@
+## 1.0.1+3
+- update xtransport to new version
+
+## 1.0.1+2
+- change xtransport dep
+
+## 1.0.1+1
+
+- fix some bug
+- add some todo
+
+## 1.0.1
+
+- chuck data supported
+- unsubscribe qos and messageid fix
+
+## 1.0.0
+
+- Initial version.
