@@ -1,6 +1,6 @@
 name: flutter_base_loader
 description: easy to load packageInfo deviceInofo and platformInfo,and provice a loadpage to make app more powerful
-version: 0.0.7+1
+version: 0.0.8
 repository: https://github.com/hkloudou/darts/tree/main/flutter_base_loader
 environment:
   sdk: ">=2.12.0 <3.0.0"

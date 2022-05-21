@@ -201,6 +201,8 @@ class MqttClient {
     _paused = false;
   }
 
+  bool get paused => _paused;
+
   /// close the connect
   void close([dynamic reson = "no reson"]) {
     print("reson: $reson");

@@ -38,7 +38,7 @@ class _BaseLoadingPageState extends State<BaseLoadingPage>
 
   @override
   void initState() {
-    BaseLoading.instance.pageReady();
+    BaseLoading.instance.pageReady(context);
     super.initState();
     // https://docs.flutter.dev/development/tools/sdk/release-notes/release-notes-3.0.0
     // 3.0 and before support

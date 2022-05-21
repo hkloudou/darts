@@ -1,3 +1,6 @@
+## 0.0.8
+* export buildContext to onReady
+
 ## 0.0.7+1
 * move to hkloudou/darts
 
