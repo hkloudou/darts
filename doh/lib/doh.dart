@@ -24,10 +24,14 @@ class DoH {
       //     // Do something with the response.
       //   });
       // }
-
-      var client = HttpClient();
+      final context = SecurityContext.defaultContext;
+      // context.
+      var client = HttpClient(context: context);
       client.connectionTimeout = timeout;
-
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        return true;
+      };
       // Init request query parameters and send request
       var request = await client.getUrl(provider.replace(queryParameters: {
         'name': domain,
@@ -42,6 +46,7 @@ class DoH {
           .cast<List<int>>()
           .transform(const Utf8Decoder())
           .join();
+      // print("json: $json");
       var res = DoHResponse.fromJson(jsonDecode(json));
       if (res.answers.isEmpty) {
         throw ("err lenght");

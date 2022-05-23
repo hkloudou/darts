@@ -1,7 +1,7 @@
 name: etheme
-description: A new Flutter package project.
+description: A ext theme like
 version: 0.0.1
-homepage:
+repository: https://github.com/hkloudou/darts/tree/main/etheme
 
 environment:
   sdk: ">=2.17.0 <3.0.0"
