@@ -1,6 +1,8 @@
 library flutter_eui;
 
-export 'common/alert.dart';
+export 'common/alert.dart' show alert;
+export 'common/router.dart' show showAnimatePage;
+export 'common/loading.dart' show showLoading;
 
 /// A Calculator.
 class Calculator {
