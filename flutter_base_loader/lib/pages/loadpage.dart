@@ -11,18 +11,25 @@ T? _ambiguate<T>(T? value) => value;
 class BaseLoadingPage extends StatefulWidget {
   const BaseLoadingPage({
     Key? key,
-    this.loading = const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    ),
+    // this.loading = const Scaffold(
+    //   body: Center(
+    //     child: CircularProgressIndicator(),
+    //   ),
+    // ),
     this.home = const Scaffold(),
     this.onPause,
     this.onResume,
+    this.loadingBuilder,
+    // this.loadingBuilder = (BuildContext context) => const Scaffold(
+    //       body: Center(
+    //         child: CircularProgressIndicator(),
+    //       ),
+    //     ),
   }) : super(key: key);
 
-  final Widget loading;
+  // final Widget loading;
   final Widget home;
+  final Widget Function(BuildContext context)? loadingBuilder;
   final void Function()? onPause;
   final void Function()? onResume;
   // final Future<void>? future;
@@ -85,7 +92,13 @@ class _BaseLoadingPageState extends State<BaseLoadingPage>
             if (kDebugMode) {
               print('snapshot.connectionState:${snapshot.connectionState}');
             }
-            return widget.loading;
+
+            return widget.loadingBuilder?.call(context) ??
+                const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
         }
       },
     );
