@@ -1,14 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_eui/flutter_eui.dart';
 
 bool _isShowing = false;
-Widget Function(BuildContext context) _euiDefaultLoadingWidgetBuilder =
-    (_) => const CircularProgressIndicator();
-Widget Function(BuildContext context) get euiDefaultLoadingWidgetBuilder =>
-    _euiDefaultLoadingWidgetBuilder;
-set euiDefaultLoadingWidgetBuilder(
-        Widget Function(BuildContext context) widgetBuilder) =>
-    _euiDefaultLoadingWidgetBuilder = widgetBuilder;
 
 void showLoading(
   BuildContext context, {
@@ -17,7 +11,7 @@ void showLoading(
   bool? isDarkMode,
   String? text,
 }) {
-  child ??= euiDefaultLoadingWidgetBuilder.call(context);
+  child ??= EConfig.instance.getLoadingWidget(context);
   theme ??= Theme.of(context);
   showDialog(
     context: context,
