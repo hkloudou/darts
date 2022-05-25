@@ -20,7 +20,8 @@ class EIconButtonCloseBack extends StatelessWidget {
       name: "assets/actions/back.webp",
       package: "flutter_eui",
       color: color,
-      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      padding: padding,
+      tooltip: tooltip ?? MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: () {
         if (onPressed != null) {
           onPressed!();
@@ -50,7 +51,8 @@ class EIconButtonClose extends StatelessWidget {
       name: "assets/actions/close.webp",
       package: "flutter_eui",
       color: color,
-      tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+      padding: padding,
+      tooltip: tooltip ?? MaterialLocalizations.of(context).closeButtonTooltip,
       onPressed: () {
         if (onPressed != null) {
           onPressed!();
@@ -58,6 +60,30 @@ class EIconButtonClose extends StatelessWidget {
           Navigator.maybePop(context);
         }
       },
+    );
+  }
+}
+
+//copy
+class EIconButtonEdit extends StatelessWidget {
+  const EIconButtonEdit(
+      {Key? key, this.color, this.onPressed, this.tooltip, this.padding})
+      : super(key: key);
+  final Color? color;
+  final EdgeInsetsGeometry? padding;
+  final String? tooltip;
+  final VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context) {
+    assert(debugCheckHasMaterialLocalizations(context));
+    return eActionIcon(
+      context: context,
+      name: "assets/actions/edit.webp",
+      package: "flutter_eui",
+      color: color,
+      padding: padding,
+      tooltip: tooltip,
+      onPressed: onPressed,
     );
   }
 }
@@ -79,7 +105,8 @@ class EIconButtonCopy extends StatelessWidget {
       name: "assets/actions/copy.webp",
       package: "flutter_eui",
       color: color,
-      tooltip: MaterialLocalizations.of(context).copyButtonLabel,
+      padding: padding,
+      tooltip: tooltip ?? MaterialLocalizations.of(context).copyButtonLabel,
       onPressed: onPressed,
     );
   }
@@ -102,7 +129,9 @@ class EIconButtonRefresh extends StatelessWidget {
       name: "assets/actions/refresh.webp",
       package: "flutter_eui",
       color: color,
-      tooltip: MaterialLocalizations.of(context).refreshIndicatorSemanticLabel,
+      padding: padding,
+      tooltip: tooltip ??
+          MaterialLocalizations.of(context).refreshIndicatorSemanticLabel,
       onPressed: onPressed,
     );
   }
@@ -124,6 +153,8 @@ class EIconButtonHelp extends StatelessWidget {
       name: "assets/actions/question.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -146,6 +177,8 @@ class EIconButtonSearch extends StatelessWidget {
       name: "assets/actions/search.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -168,6 +201,8 @@ class EIconButtonNotice extends StatelessWidget {
       name: "assets/actions/notice.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -190,6 +225,8 @@ class EIconButtonFilter extends StatelessWidget {
       name: "assets/actions/filter.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -212,8 +249,9 @@ class EIconButtonHistory extends StatelessWidget {
       context: context,
       name: "assets/actions/history.webp",
       package: "flutter_eui",
-      tooltip: tooltip,
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -235,8 +273,9 @@ class EIconButtonSwap extends StatelessWidget {
       context: context,
       name: "assets/actions/swap.webp",
       package: "flutter_eui",
-      tooltip: tooltip,
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -258,6 +297,8 @@ class EIconButtonQrcode extends StatelessWidget {
       name: "assets/actions/qrcode.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
@@ -279,6 +320,8 @@ class EIconButtonPerson extends StatelessWidget {
       name: "assets/actions/person.webp",
       package: "flutter_eui",
       color: color,
+      padding: padding,
+      tooltip: tooltip,
       onPressed: onPressed,
     );
   }
