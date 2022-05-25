@@ -74,6 +74,10 @@ class EColor {
         brightness: brightness,
         scaffoldBackgroundColor: scaffoldBackgroundColor,
         backgroundColor: backgroundColor,
+        iconTheme: IconThemeData(
+          color: secondaryText,
+          size: 24,
+        ),
         appBarTheme: AppBarTheme(
           backgroundColor: backgroundColor,
           foregroundColor: primaryText,

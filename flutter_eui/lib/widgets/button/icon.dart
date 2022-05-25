@@ -345,9 +345,9 @@ Widget eActionIcon({
         child: Image.asset(
       name,
       package: package,
-      width: size ?? theme.size,
-      height: size ?? theme.size,
-      color: color ?? theme.color,
+      width: size ?? theme.size ?? 24,
+      height: size ?? theme.size ?? 24,
+      color: color ?? theme.color ?? Colors.grey,
     )),
   )
       .gestures(
