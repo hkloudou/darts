@@ -23,21 +23,28 @@ class EColor {
   Color border3 = const Color(0xFFEBEEF5);
   Color border4 = const Color(0xFFF2F6FC);
 
-  Color success = const Color(0xFF67C23A);
-  Color success1 = const Color(0xFFe1f3d8);
-  Color success2 = const Color(0xFFf0f9eb);
+  List<Color> success = [
+    const Color(0xFF67C23A),
+    const Color(0xFFe1f3d8),
+    const Color(0xFFf0f9eb)
+  ];
 
-  Color warning = const Color(0xFFE6A23C);
-  Color warning1 = const Color(0xFFfaecd8);
-  Color warning2 = const Color(0xFFfdf6ec);
+  List<Color> warning = [
+    const Color(0xFFE6A23C),
+    const Color(0xFFfaecd8),
+    const Color(0xFFfdf6ec)
+  ];
 
-  Color danger = const Color(0xFFF56C6C);
-  Color danger1 = const Color(0xFFfde2e2);
-  Color danger2 = const Color(0xFFfef0f0);
-
-  Color info = const Color(0xFF909399);
-  Color info1 = const Color(0xFFe9e9eb);
-  Color info2 = const Color(0xFFf4f4f5);
+  List<Color> danger = [
+    const Color(0xFFF56C6C),
+    const Color(0xFFfde2e2),
+    const Color(0xFFfef0f0)
+  ];
+  List<Color> info = [
+    const Color(0xFF909399),
+    const Color(0xFFe9e9eb),
+    const Color(0xFFf4f4f5)
+  ];
 
   mergaWith({
     Color? primaryText,
@@ -63,18 +70,16 @@ class EColor {
 
   EColor({required this.brightness});
 
-  ThemeData toTheme() {
-    return ThemeData(
-      brightness: brightness,
-      scaffoldBackgroundColor: scaffoldBackgroundColor,
-      backgroundColor: backgroundColor,
-      appBarTheme: AppBarTheme(
+  ThemeData get themeData => ThemeData(
+        brightness: brightness,
+        scaffoldBackgroundColor: scaffoldBackgroundColor,
         backgroundColor: backgroundColor,
-        foregroundColor: primaryText,
-        iconTheme: IconThemeData(color: secondaryText, size: 24),
-      ),
-    );
-  }
+        appBarTheme: AppBarTheme(
+          backgroundColor: backgroundColor,
+          foregroundColor: primaryText,
+          iconTheme: IconThemeData(color: secondaryText, size: 24),
+        ),
+      );
 }
 
 class EColors {
