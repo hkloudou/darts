@@ -1,6 +1,6 @@
 name: flutter_base_loader
 description: easy to load packageInfo deviceInofo and platformInfo,and provice a loadpage to make app more powerful
-version: 0.0.9
+version: 0.0.9+1
 repository: https://github.com/hkloudou/darts/tree/main/flutter_base_loader
 environment:
   sdk: ">=2.12.0 <3.0.0"
@@ -22,4 +22,4 @@ dev_dependencies:
 #   # activated in the `analysis_options.yaml` file located at the root of your
 #   # package. See that file for information about deactivating specific lint
 #   # rules and activating additional ones.
-  # flutter_lints: any
+# flutter_lints: any

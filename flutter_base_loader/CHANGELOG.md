@@ -1,3 +1,5 @@
+## 0.0.9+1
+* fix some bug
 ## 0.0.9
 * change loading to builder function
 
