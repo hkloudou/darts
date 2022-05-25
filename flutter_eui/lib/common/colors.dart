@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
 class EColor {
+  Brightness brightness;
+
+  // MaterialColor brandColor =
+
   Color primaryText = const Color(0xFF303133);
-  Color regularText = const Color(0xFF606266);
-  Color secondaryText = const Color(0xFF909399);
+  Color regularText = const Color(0xFF606266); //
+  Color secondaryText = const Color(0xFF909399); //icon
   Color placeholderText = const Color(0xFFC0C4CC);
 
-  // Color foregroundColor = Colors.black;
-  Color placeholderColor = Colors.white;
   Color backgroundColor = const Color.fromRGBO(146, 155, 165, 1);
+  Color scaffoldBackgroundColor = Colors.grey[300]!;
+
+  // Color
+
+  // Color foregroundColor = Colors.black;
+  // Color placeholderColor = Colors.white;
 
   Color border1 = const Color(0xFFDCDFE6);
   Color border2 = const Color(0xFFE4E7ED);
@@ -36,9 +44,10 @@ class EColor {
     Color? regularText,
     Color? secondaryText,
     Color? placeholderText,
-    Color? foregroundColor,
+    Color? scaffoldBackgroundColor,
+    // Color? foregroundColor,
     Color? backgroundColor,
-    Color? placeholderColor,
+    // Color? placeholderColor,
   }) {
     this.primaryText = primaryText ?? this.primaryText;
     this.regularText = regularText ?? this.regularText;
@@ -47,25 +56,30 @@ class EColor {
 
     // this.foregroundColor = foregroundColor ?? this.foregroundColor;
     this.backgroundColor = backgroundColor ?? this.backgroundColor;
-    this.placeholderColor = placeholderColor ?? this.placeholderColor;
+    this.scaffoldBackgroundColor =
+        scaffoldBackgroundColor ?? this.scaffoldBackgroundColor;
+    // this.placeholderColor = placeholderColor ?? this.placeholderColor;
   }
 
-  EColor();
+  EColor({required this.brightness});
 
-  // void applyToTheme(ThemeData data) {
-  //   data = data.copyWith(
-  //     scaffoldBackgroundColor: backgroundColor,
-  //     appBarTheme: AppBarTheme(
-  //       foregroundColor: foregroundColor,
-  //       backgroundColor: backgroundColor,
-  //     ),
-  //   );
-  // }
+  ThemeData toTheme() {
+    return ThemeData(
+      brightness: brightness,
+      scaffoldBackgroundColor: scaffoldBackgroundColor,
+      backgroundColor: backgroundColor,
+      appBarTheme: AppBarTheme(
+        backgroundColor: backgroundColor,
+        foregroundColor: primaryText,
+        iconTheme: IconThemeData(color: secondaryText, size: 24),
+      ),
+    );
+  }
 }
 
 class EColors {
-  static EColor _light = EColor();
-  static EColor _dark = EColor();
+  static EColor _light = EColor(brightness: Brightness.light);
+  static EColor _dark = EColor(brightness: Brightness.dark);
   static EColor get light => _light;
   static EColor get dark => _dark;
   static setColor({
@@ -77,6 +91,10 @@ class EColors {
   }
 
   static EColor of(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark ? _dark : _light;
+    return isDark(context) ? _dark : _light;
+  }
+
+  static bool isDark(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
   }
 }
