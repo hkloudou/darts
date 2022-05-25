@@ -1,6 +1,5 @@
-import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_eui/flutter_eui.dart';
 
 class EActionThemeSwith extends StatefulWidget {
   const EActionThemeSwith({Key? key, this.width = 50}) : super(key: key);
@@ -50,6 +49,6 @@ class _EActionThemeSwithState extends State<EActionThemeSwith>
           }
         },
       ),
-    );
+    ).cursor();
   }
 }
