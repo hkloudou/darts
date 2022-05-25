@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-extension mouseExtension on Widget {
+extension EuiMouseExtension on Widget {
   Widget cursor({cursor = SystemMouseCursors.click}) {
     return MouseRegion(
       cursor: cursor,
