@@ -16,3 +16,6 @@ export 'extension/mouse.dart';
 
 //other package
 export 'package:styled_widget/styled_widget.dart';
+export 'package:lottie/lottie.dart';
+export 'package:adaptive_theme/adaptive_theme.dart';
+export 'package:flutter_easyrefresh/easy_refresh.dart';
