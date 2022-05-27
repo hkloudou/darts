@@ -1,3 +1,6 @@
+## 1.0.2+2
+- update xtransport
+
 ## 1.0.2
 - export buildContext to onReady
 = export paused to interface
