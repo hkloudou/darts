@@ -18,10 +18,10 @@ class EColor {
   // Color foregroundColor = Colors.black;
   // Color placeholderColor = Colors.white;
 
-  Color border1 = const Color(0xFFDCDFE6);
-  Color border2 = const Color(0xFFE4E7ED);
-  Color border3 = const Color(0xFFEBEEF5);
-  Color border4 = const Color(0xFFF2F6FC);
+  // Color border1 = const Color(0xFFDCDFE6);
+  // Color border2 = const Color(0xFFE4E7ED);
+  // Color border3 = const Color(0xFFEBEEF5);
+  // Color border4 = const Color(0xFFF2F6FC);
 
   List<Color> success = [
     const Color(0xFF67C23A),

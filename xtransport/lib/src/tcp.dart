@@ -66,9 +66,9 @@ class XTransportTcpClient implements ITransportClient {
   XTransportTcpClient.from(this._host, this._port,
       {this.credentials = const XtransportCredentials.insecure()});
 
-  Future<Socket> getConnectionSocket() async {
-    var _tmpSocket =
-        await Socket.connect(_host, _port, timeout: const Duration(seconds: 1));
+  Future<Socket> getConnectionSocket({Duration? duration}) async {
+    var _tmpSocket = await Socket.connect(_host, _port,
+        timeout: duration ?? const Duration(seconds: 60));
     if (_tmpSocket.address.type != InternetAddressType.unix) {
       _tmpSocket.setOption(SocketOption.tcpNoDelay, true);
     }
@@ -96,7 +96,7 @@ class XTransportTcpClient implements ITransportClient {
 
   /// [TCP] connect
   @override
-  Future<void> connect({String? host, int? port}) async {
+  Future<void> connect({String? host, int? port, Duration? duration}) async {
     _host = host ?? _host;
     _port = port ?? _port;
     if (status != ConnectStatus.disconnect) {
@@ -104,7 +104,7 @@ class XTransportTcpClient implements ITransportClient {
     }
     status = ConnectStatus.connecting;
     try {
-      _socket = await getConnectionSocket();
+      _socket = await getConnectionSocket(duration: duration);
       _remoteInfo = RemoteInfo(
         address: _socket?.remoteAddress.address ?? "",
         host: (credentials.isSecure ? credentials.authority : null) ??

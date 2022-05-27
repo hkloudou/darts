@@ -13,8 +13,8 @@ class BaseLoading {
   late Future<BuildContext> _futureReady;
 
   BaseLoading._internal() {
-    _futureReady = _comLoadingPage.future.then<BuildContext>((ctx) {
-      BaseInfo.init();
+    _futureReady = _comLoadingPage.future.then<BuildContext>((ctx) async {
+      await BaseInfo.init();
       return ctx;
     });
     _future = _futureReady.then((_) => _com.future);

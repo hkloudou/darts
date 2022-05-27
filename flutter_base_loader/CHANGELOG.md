@@ -1,3 +1,6 @@
+## 0.0.9+2
+* fix some bug
+
 ## 0.0.9+1
 * fix some bug
 ## 0.0.9

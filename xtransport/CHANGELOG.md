@@ -1,5 +1,9 @@
+## 0.0.4+3
+* fix the bug tcp timeout
+
 ## 0.0.4+2
 * move to hkloudou/darts
+
 ## 0.0.4+1
 * remove wrong method flush.(fix some bug)
 
