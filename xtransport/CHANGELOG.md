@@ -1,3 +1,6 @@
+## 0.0.4+4
+* fix the bug tcp timeout
+
 ## 0.0.4+3
 * fix the bug tcp timeout
 

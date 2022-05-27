@@ -1,6 +1,6 @@
 name: xtransport
 description: xtransport is a network transport interface,it provide a simple way to manage network transport like unix/tcp/ws/udp/quic...
-version: 0.0.4+3
+version: 0.0.4+4
 repository: https://github.com/hkloudou/darts/tree/main/xtransport
 environment:
   sdk: ">=2.16.1 <3.0.0"
