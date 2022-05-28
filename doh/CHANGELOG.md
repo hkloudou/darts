@@ -1,3 +1,7 @@
+## 0.0.3+1
+- add global providers set
+- add provider infomation to DohAnswers
+
 ## 0.0.3
 - remove secret dns support
 - add dns cache support

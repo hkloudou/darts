@@ -11,29 +11,35 @@ and the Flutter guide for
 [developing packages and plugins](https://flutter.dev/developing-packages). 
 -->
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+Doh is a simple doh client
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
+TODO: 
+- [ ] add dnssec support
 ## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+With dart
+```` sh
+dart pub add doh
+````
+This will add a line like this to your package's pubspec.yaml (and run an implicit dart pub get):
+```` yaml
+dependencies:
+  doh: ^0.0.3
+````
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+<!-- TODO: Include short and useful examples for package users. Add longer examples
+to `/example` folder.  -->
 
-```dart
+[example](./example/example.md)
+<!-- ```dart
 const like = 'sample';
-```
+``` -->
 
-## Additional information
+<!-- ## Additional information
 
 TODO: Tell users more about the package: where to find more information, how to 
 contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+from the package authors, and more. -->

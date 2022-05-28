@@ -127,10 +127,12 @@ class DoH {
   DoH({List<Uri>? provider})
       : _provider = provider ??
             [
+              DoHProvider.google2,
+              DoHProvider.google1,
               DoHProvider.cloudflare2,
               DoHProvider.cloudflare1,
-              DoHProvider.google,
               DoHProvider.quad9,
+              DoHProvider.tw101,
               DoHProvider.alidns,
               DoHProvider.alidns2,
             ],
@@ -230,6 +232,7 @@ class DoH {
       }
       for (var i = 0; i < res.answers.length; i++) {
         res.answers[i].name = res.answers[i].name.toLowerCase();
+        res.answers[i].provider = provider;
         if (res.answers[i].name.endsWith('.')) {
           res.answers[i].name =
               res.answers[i].name.substring(0, res.answers[i].name.length - 1);
@@ -240,6 +243,7 @@ class DoH {
             ttl: res.answers[i].ttl,
             type: res.answers[i].type,
             data: res.answers[i].data,
+            provider: res.answers[i].provider,
           ));
         }
       }

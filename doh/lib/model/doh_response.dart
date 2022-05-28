@@ -1,3 +1,5 @@
+import './doh_enum.dart';
+
 class DoHResponse {
   int status = 0;
   bool tc = false;
@@ -82,8 +84,14 @@ class DoHAnswer {
   int type = 0;
   String data = "";
   int validUntil = 0;
-  DoHAnswer({this.name = "", this.ttl = 0, this.type = 0, this.data = ""})
-      : validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
+  Uri? provider;
+  DoHAnswer({
+    this.name = "",
+    this.ttl = 0,
+    this.type = 0,
+    this.data = "",
+    this.provider,
+  }) : validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
 
   DoHAnswer.fromJson(Map<String, dynamic> json) {
     name = (json['name'] as String?) ?? "";
@@ -100,6 +108,10 @@ class DoHAnswer {
     data['type'] = type;
     data['data'] = this.data;
     data['validUntil'] = validUntil;
+
+    if (provider != null) {
+      data['provider'] = provider.toString();
+    }
     return data;
   }
 }
