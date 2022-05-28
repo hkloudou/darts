@@ -9,113 +9,6 @@ import './model/doh_enum.dart';
 import 'dart:developer' as developer;
 
 export './model/doh_enum.dart' show DohRequestType, DoHProvider;
-// class DoH {
-//   final Uri provider;
-//   // final Duration duration;
-//   DoH(this.provider);
-
-//   Future<DoHResponse> lookup(
-//     String domain,
-//     DohRecordType type, {
-//     bool dnssec = false,
-//     Duration? timeout,
-//     int attempt = 1,
-//   }) async {
-//     try {
-//       final context = SecurityContext.defaultContext;
-//       var client = HttpClient(context: context);
-//       client.connectionTimeout = timeout;
-//       client.badCertificateCallback = (cert, host, port) => true;
-//       var request = await client.getUrl(provider.replace(queryParameters: {
-//         'name': domain,
-//         'type': type.toString().replaceFirst('RecordType.', ''),
-//         'dnssec': dnssec ? '1' : '0'
-//       }));
-//       // Set request http header (need for 'cloudflare' provider)
-//       request.headers.add('Accept', 'application/dns-json');
-//       // Close & retrive response
-//       var response = await request.close();
-//       var json = await response
-//           .cast<List<int>>()
-//           .transform(const Utf8Decoder())
-//           .join();
-//       var res = DoHResponse.fromJson(jsonDecode(json));
-//       if (res.answers.isEmpty) {
-//         throw ("err lenght");
-//       }
-//       return res;
-//     } catch (e) {
-//       developer.log("resolve error", error: e, name: "doh");
-//       if (attempt > 1) {
-//         return lookup(domain, type,
-//             dnssec: dnssec, timeout: timeout, attempt: attempt - 1);
-//       }
-//       rethrow;
-//       // return Future.error(e.toString());
-//     }
-//   }
-
-//   // // lookupJsonSecret lookup the json Secret
-//   // Future<DohSecretReccord> lookupJsonSecret(
-//   //   String domain, {
-//   //   Duration? onFailRetryDuration,
-//   //   bool deep = false,
-//   // }) async {
-//   //   try {
-//   //     var records = (await lookup(domain, DohRecordType.TXT))
-//   //         .answers
-//   //         .where((element) => element.type == 16)
-//   //         .toList();
-//   //     records.shuffle(Random(DateTime.now().microsecondsSinceEpoch));
-//   //     var data = DohSecretReccord.fromBase64(records.first.data);
-//   //     data.ip = data.host;
-//   //     if (deep) {
-//   //       data.ip = (await deepLoopupARecord(
-//   //         data.host,
-//   //         onFailRetryDuration: onFailRetryDuration,
-//   //       ));
-//   //     }
-//   //     return Future.value(data);
-//   //   } catch (e) {
-//   //     if (onFailRetryDuration == null) rethrow;
-//   //     return Future.delayed(onFailRetryDuration).then((_) => lookupJsonSecret(
-//   //           domain,
-//   //           onFailRetryDuration: onFailRetryDuration,
-//   //           deep: deep,
-//   //         ));
-//   //   }
-//   // }
-
-//   // Future<String> deepLoopupARecord(
-//   //   String domain, {
-//   //   Duration? onFailRetryDuration,
-//   // }) async {
-//   //   try {
-//   //     // return if the record is ip
-//   //     var h2 = InternetAddress.tryParse(domain);
-//   //     if (h2?.type == InternetAddressType.IPv4 ||
-//   //         h2?.type == InternetAddressType.IPv6) {
-//   //       return domain;
-//   //     }
-
-//   //     // or deep loopup dns A record until it became to ip
-//   //     var records = (await lookup(
-//   //       domain,
-//   //       DohRecordType.A,
-//   //     ))
-//   //         .answers
-//   //         .where((element) => element.type == 1)
-//   //         .toList();
-//   //     records.shuffle(Random(DateTime.now().microsecondsSinceEpoch));
-//   //     return deepLoopupARecord(records.first.data,
-//   //         onFailRetryDuration: onFailRetryDuration);
-//   //   } catch (e) {
-//   //     if (onFailRetryDuration == null) rethrow;
-//   //     return Future.delayed(onFailRetryDuration).then((_) =>
-//   //         deepLoopupARecord(domain, onFailRetryDuration: onFailRetryDuration));
-//   //   }
-//   // }
-// }
 
 /// Client for DNS lookup using doh json protocol.
 class DoH {
@@ -168,6 +61,7 @@ class DoH {
       }
     }
 
+    /// internal function
     return _lookup(
       domain,
       type,
@@ -185,6 +79,7 @@ class DoH {
   /// kick the cache
   void kick(String name, DohRequestType type) => _cache.kick(name, type);
 
+  /// internal lookup
   Future<List<T>> _lookup<T extends DoHAnswer>(
     String domain,
     DohRequestType type, {
@@ -215,8 +110,6 @@ class DoH {
         name: "doh",
       );
       var request = await client.getUrl(url);
-      // print("request: ${request.uri.toString()}");
-
       // Set request http header (need for 'cloudflare' provider)
       request.headers.add('Accept', 'application/dns-json');
       // Close & retrive response
@@ -225,7 +118,6 @@ class DoH {
           .cast<List<int>>()
           .transform(const Utf8Decoder())
           .join();
-      // print("json: $json");
       var res = DoHResponse.fromJson(jsonDecode(json));
       if (res.answers.isEmpty) {
         throw ("answers isEmpty");

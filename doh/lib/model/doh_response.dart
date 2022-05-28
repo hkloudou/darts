@@ -1,5 +1,5 @@
-import './doh_enum.dart';
-
+/// DoHResponse
+///
 class DoHResponse {
   int status = 0;
   bool tc = false;
@@ -59,6 +59,8 @@ class DoHResponse {
   }
 }
 
+/// DoHQuestion
+///
 class DoHQuestion {
   String name = "";
   int type = 0;
@@ -78,6 +80,7 @@ class DoHQuestion {
   }
 }
 
+/// DoHAnswer
 class DoHAnswer {
   String name = "";
   int ttl = 0;

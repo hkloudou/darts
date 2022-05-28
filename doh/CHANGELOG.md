@@ -1,4 +1,4 @@
-## 0.0.3+1
+## 0.0.3+3
 - add global providers set
 - add provider infomation to DohAnswers
 

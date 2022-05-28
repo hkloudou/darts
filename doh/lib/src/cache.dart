@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'dart:collection';
-// import 'dart:convert';
 
 import '../model/doh_response.dart';
 import '../model/doh_enum.dart';
@@ -59,18 +58,14 @@ class DohAnswerCache {
     if (restype == null) {
       return [];
     }
-    // assert(ResourceRecordType.debugAssertValid(type));
-    // print("cache lookup:$name $type");
     final int time = DateTime.now().millisecondsSinceEpoch;
     final SplayTreeMap<String, List<DoHAnswer>>? candidates = _cache[restype];
     if (candidates == null) {
-      // print("candidates==null");
       return [];
     }
 
     final List<DoHAnswer>? candidateRecords = candidates[name];
     if (candidateRecords == null) {
-      // print("candidateRecords==null");
       return [];
     }
     candidateRecords
@@ -78,7 +73,7 @@ class DohAnswerCache {
     return candidateRecords.cast<T>();
   }
 
-  /// kick
+  /// kick some cache
   void kick(String name, DohRequestType type) {
     final int? restype = dohRequestTypeMap[type];
     if (restype == null) {

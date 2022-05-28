@@ -4,15 +4,6 @@ import 'package:test/test.dart';
 
 void main() {
   group('A group of tests', () {
-    // var data = DohSecretReccord(
-    //   host: "lolocalhost",
-    //   authority: "fake.google.com",
-    //   port: 443,
-    // ).toBase64();
-    // setUp(() {
-    //   // Additional setup goes here.
-    // });
-
     test('First Test', () async {
       var x = await DoH.instance.lookup(
         "www.apple.com",
