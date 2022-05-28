@@ -26,7 +26,15 @@ class DoHResponse {
     ra = (json['TA'] as bool?) ?? false;
     ad = (json['AD'] as bool?) ?? false;
     cd = (json['CD'] as bool?) ?? false;
-    question = DoHQuestion.fromJson(json['Question']);
+    if (json['Question'] != null) {
+      if (json['Question'] is List<dynamic>) {
+        json['Question'].forEach((v) {
+          question = DoHQuestion.fromJson(v);
+        });
+      } else if (json['Question'] is Map<String, dynamic>) {
+        question = DoHQuestion.fromJson(json['Question']);
+      }
+    }
     if (json['Answer'] != null) {
       answers = <DoHAnswer>[];
       json['Answer'].forEach((v) {
@@ -73,14 +81,16 @@ class DoHAnswer {
   int ttl = 0;
   int type = 0;
   String data = "";
-
-  DoHAnswer({this.name = "", this.ttl = 0, this.type = 0, this.data = ""});
+  int validUntil = 0;
+  DoHAnswer({this.name = "", this.ttl = 0, this.type = 0, this.data = ""})
+      : validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
 
   DoHAnswer.fromJson(Map<String, dynamic> json) {
     name = (json['name'] as String?) ?? "";
     ttl = (json['TTL'] as int?) ?? 0;
     type = (json['type'] as int?) ?? 0;
     data = (json['data'] as String?) ?? "";
+    validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
   }
 
   Map<String, dynamic> toJson() {
@@ -89,6 +99,7 @@ class DoHAnswer {
     data['TTL'] = ttl;
     data['type'] = type;
     data['data'] = this.data;
+    data['validUntil'] = validUntil;
     return data;
   }
 }

@@ -2,9 +2,10 @@
 import 'package:doh/doh.dart';
 
 void main() {
-  DoH(DoHProvider.alidns).lookup(
-    "www.baidu.com",
-    RecordType.A,
+  var x = await DoH.instance.lookup(
+    "www.apple.com",
+    DohRequestType.A,
+    attempt: 2,
   );
 }
 
