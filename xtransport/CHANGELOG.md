@@ -1,3 +1,6 @@
+## 0.0.4+5
+* add the websockets support
+
 ## 0.0.4+4
 * fix the bug tcp timeout
 

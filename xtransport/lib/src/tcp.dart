@@ -55,7 +55,12 @@ class XTransportTcpClient implements ITransportClient {
 
   @override
   void close() {
-    // _socket?.close();
+    _socket?.close();
+    developer.log(
+      "\u001b[31m${"closed"}\u001b[0m",
+      time: DateTime.now(),
+      name: "tcp",
+    );
     _socket?.destroy();
   }
 
@@ -152,7 +157,7 @@ class XTransportTcpClient implements ITransportClient {
       developer.log(
         "connect",
         error: e,
-        name: "error",
+        name: "tcp",
       );
       status = ConnectStatus.disconnect;
       _onError?.call(Error.from(e));
@@ -195,11 +200,13 @@ class XTransportTcpClient implements ITransportClient {
       },
       onDone: () {
         // print("xtransport.onDone");
+        developer.log("onDone", name: "tcp");
         status = ConnectStatus.disconnect;
         _onClose?.call();
       },
       onError: (e) {
         // print("xtransport.onError");
+        developer.log("onError", name: "tcp", error: e);
         status = ConnectStatus.disconnect;
         _onError?.call(Error.from(e));
         // _onClose?.call();

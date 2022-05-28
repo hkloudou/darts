@@ -49,7 +49,8 @@ abstract class ITransportClient {
   void onMessage(void Function(Message msg) fn);
 
   /// connect to the server
-  Future<void> connect({String? host, int? port, Duration? duration});
+  Future<void> connect(
+      {String? host, int? port, Duration? duration, Duration? deadline});
 }
 
 enum ConnectStatus { disconnect, connecting, connected, paused }

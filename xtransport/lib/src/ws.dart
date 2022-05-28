@@ -1,3 +1,218 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:xtransport/src/interface.dart';
+import 'package:xtransport/src/jsons.dart';
+import 'package:xtransport/src/shared/credentials.dart';
+import 'dart:developer' as developer;
+
+class XTransportWsClient implements ITransportClient {
+  /*
+    interface fields 
+  */
+  @override
+  XtransportCredentials credentials = const XtransportCredentials.insecure();
+
+  @override
+  ConnectStatus status = ConnectStatus.disconnect;
+
+  bool log = false;
+
+  String _host;
+  int _port;
+  WebSocket? _socket;
+  Duration? _deadline;
+  Duration _duration = Duration(seconds: 20);
+
+  RemoteInfo _remoteInfo = RemoteInfo();
+  LocalInfo _localInfo = LocalInfo();
+
+  //Events
+  void Function()? _onConnect;
+  void Function()? _onClose;
+  void Function(Error err)? _onError;
+  void Function(Message msg)? _onMessage;
+
+  //Method
+  @override
+  void send(ITransportPacket obj) {
+    try {
+      _socket?.add(obj.pack());
+    } catch (e) {
+      developer.log(
+        "send data",
+        name: "ws",
+        error: e,
+      );
+      close();
+    }
+  }
+
+  @override
+  void close() {
+    // _socket?.
+    developer.log(
+      "\u001b[31m${"closed"}\u001b[0m",
+      time: DateTime.now(),
+      name: "ws",
+    );
+    _socket?.close();
+  }
+
+  // Events
+  @override
+  void onClose(void Function() fn) => _onClose = fn;
+
+  @override
+  void onConnect(void Function() fn) => _onConnect = fn;
+
+  @override
+  void onError(void Function(Error err) fn) => _onError = fn;
+
+  @override
+  void onMessage(void Function(Message msg) fn) => _onMessage = fn;
+
+  XTransportWsClient.from(
+    this._host,
+    this._port, {
+    this.log = false,
+    this.credentials = const XtransportCredentials.insecure(),
+  });
+
+  Future<WebSocket> getConnectionSocket({Duration? duration}) async {
+    HttpClient? customCient;
+    if (credentials.isSecure) {
+      customCient = HttpClient(context: credentials.securityContext);
+      // customCient.
+
+      customCient.badCertificateCallback = (cert, host, port) {
+        if (credentials.onBadCertificate != null) {
+          return credentials.onBadCertificate!(
+            cert,
+            credentials.authority ?? _host,
+          );
+        }
+        return false;
+      };
+    }
+    if (log) {
+      developer.log(
+        (credentials.isSecure ? "wss" : "ws") +
+            "://" +
+            _host +
+            ":$_port" +
+            "/mqtt",
+        time: DateTime.now(),
+        name: "ws",
+      );
+    }
+    var _tmpSocket = await WebSocket.connect(
+      (credentials.isSecure ? "wss" : "ws") +
+          "://" +
+          (credentials.authority ?? _host) +
+          ":$_port" +
+          "/mqtt",
+      // headers: {
+      //   "host": credentials.authority,
+      // },
+      customClient: customCient,
+    );
+
+    return _tmpSocket;
+  }
+
+  /// [WS] connect
+  @override
+  Future<void> connect(
+      {String? host, int? port, Duration? duration, Duration? deadline}) async {
+    if (log) {
+      developer.log(
+        "\u001b[32m${"connecting"}\u001b[0m",
+        time: DateTime.now(),
+        name: "ws",
+      );
+    }
+    _host = host ?? _host;
+    _port = port ?? _port;
+    _duration = duration ?? _duration;
+    _deadline = deadline ?? _deadline;
+
+    if (status != ConnectStatus.disconnect) {
+      return Future.value();
+    }
+    status = ConnectStatus.connecting;
+    try {
+      _socket = await getConnectionSocket(duration: duration);
+      _remoteInfo = RemoteInfo(
+        // address: _socket?.remoteAddress.address ?? "",
+        // host: (credentials.isSecure ? credentials.authority : null) ??
+        //     _socket?.remoteAddress.host ??
+        //     "",
+        port: _port,
+        // family: _socket?.remoteAddress.type.name ?? "",
+      );
+      _localInfo = LocalInfo(
+        address: _localInfo.address,
+        // family: _socket?.address.type.name ?? "",
+        // port: _socket?.port ?? 0,
+      );
+      status = ConnectStatus.connected;
+      _onConnect?.call();
+    } catch (e) {
+      developer.log(
+        "connect",
+        error: e,
+        name: "ws",
+      );
+      status = ConnectStatus.disconnect;
+      _onError?.call(Error.from(e));
+      _onClose?.call();
+      return Future.value();
+    }
+    _socket?.pingInterval = deadline;
+    _broadcastNotifications();
+    // .then((value) {
+    //   // print("finish boast");
+    // });
+    return Future.value();
+  }
+
+  /// internal function
+  Future<StreamSubscription<dynamic>?> _broadcastNotifications() async {
+    var ret = _socket?.listen(
+      (streamData) {
+        _onMessage?.call(Message(
+            message: streamData,
+            remoteInfo: RemoteInfo(
+              address: _remoteInfo.address,
+              host: _remoteInfo.host,
+              port: _remoteInfo.port,
+              family: _remoteInfo.family,
+              size: streamData.length,
+            ),
+            localInfo: _localInfo));
+      },
+      onDone: () {
+        // print("xtransport.onDone");
+        developer.log("onDone", name: "ws");
+        status = ConnectStatus.disconnect;
+        _onClose?.call();
+      },
+      onError: (e) {
+        // print("xtransport.onError");
+        developer.log("onError", name: "ws", error: e);
+        status = ConnectStatus.disconnect;
+        _onError?.call(Error.from(e));
+        // _onClose?.call();
+      },
+      cancelOnError: true,
+    );
+
+    return Future.value(ret);
+  }
+}
+
+
 // import 'dart:async';
 // import 'dart:convert';
 // import 'dart:io';

@@ -91,7 +91,7 @@ class XtransportCredentials {
       }
       return context;
     }
-    final context = SecurityContext(withTrustedRoots: true);
+    final context = SecurityContext(withTrustedRoots: _caCertificateBytes != null);
     return context;
   }
 }
