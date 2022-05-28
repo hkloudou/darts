@@ -122,7 +122,8 @@ class DoH {
   final DohAnswerCache _cache = DohAnswerCache();
   static final DoH _instance = DoH();
   static DoH get instance => _instance;
-  final List<Uri> _provider;
+  List<Uri> _provider;
+  set provider(List<Uri> value) => _provider = value;
   DoH({List<Uri>? provider})
       : _provider = provider ??
             [
