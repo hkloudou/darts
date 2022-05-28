@@ -25,7 +25,7 @@ dart pub add doh
 This will add a line like this to your package's pubspec.yaml (and run an implicit dart pub get):
 ```` yaml
 dependencies:
-  doh: ^0.0.3
+  doh: ^0.0.3+1
 ````
 
 ## Usage
