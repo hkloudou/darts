@@ -4,15 +4,14 @@ import 'dart:typed_data';
 import 'mqtt.dart';
 import 'package:dart_mqtt/dart_mqtt.dart';
 import 'package:xtransport/xtransport.dart';
-import 'dart:developer' as developer;
+import './logger.dart' as loger;
 
 typedef EvtMqttPublishArrived = void Function(MqttMessagePublish msg);
 
 /// Mqtt client instance
 class MqttClient {
-  XtransportCredentials credentials;
   static MqttClient? instance;
-  late XTransportTcpClient _conn;
+  ITransportClient transport;
   bool _started = false;
   bool _paused = false;
   bool _stoped = false;
@@ -166,36 +165,25 @@ class MqttClient {
 
   /// internal function
   MqttClient._(
-    String _host,
-    int _port, {
-    required this.credentials,
+    this.transport, {
+    // required this.credentials,
     required this.log,
     required this.allowReconnect,
     required this.reconnectWait,
     required this.customReconnectDelayCB,
-  }) {
-    _conn = XTransportTcpClient.from(
-      _host,
-      _port,
-      credentials: credentials,
-      log: log,
-    );
-    // motion
-  }
+  });
 
   MqttClient(
-    String _host,
-    int _port, {
-    XtransportCredentials credentials = const XtransportCredentials.insecure(),
+    ITransportClient client, {
+    // XtransportCredentials credentials = const XtransportCredentials.insecure(),
     bool log = false,
     // reconnect attributes
     bool allowReconnect = false,
     Duration reconnectWait = const Duration(seconds: 2),
     Duration Function()? customReconnectDelayCB,
   }) : this._(
-          _host,
-          _port,
-          credentials: credentials,
+          client,
+          // credentials: credentials,
           allowReconnect: allowReconnect,
           reconnectWait: reconnectWait,
           customReconnectDelayCB: customReconnectDelayCB,
@@ -218,7 +206,7 @@ class MqttClient {
   /// close the connect
   void close([dynamic reson = "no reson"]) {
     // print("reson: $reson");
-    _conn.close();
+    transport.close();
   }
 
   void _onConnectClose() {
@@ -235,17 +223,19 @@ class MqttClient {
       Future.delayed(customReconnectDelayCB?.call() ?? reconnectWait).then((_) {
         // _onBeforeReconnect?.call().th;
         if (_onBeforeReconnect != null) {
-          return _onBeforeReconnect?.call().then((value) => _conn.connect());
+          return _onBeforeReconnect
+              ?.call()
+              .then((value) => transport.connect());
         } else {
-          _conn.connect();
+          transport.connect();
         }
       });
     }
   }
 
   void _resetTimePeriodic() {
-    if (_conn.status != ConnectStatus.connected) {
-      developer.log("_resetTimePeriodic");
+    if (transport.status != ConnectStatus.connected) {
+      loger.log("_resetTimePeriodic");
     }
     var _seconds = _connectPacket.getKeepalive();
     // _seconds = (_seconds * 0.5).toInt();
@@ -263,14 +253,14 @@ class MqttClient {
 
     if (_stoped) return;
     if (_paused) return;
-    if (_conn.status != ConnectStatus.connected) {
+    if (transport.status != ConnectStatus.connected) {
       // developer.log("_conn.status != ConnectStatus.connected: ${_conn.status}");
       // developer.log(obj.toString());
       return;
     }
     // if (obj.)
     // _resetTimePeriodic();
-    _conn.send(obj);
+    transport.send(obj);
 // log(message);
 
     if (log) {
@@ -278,16 +268,17 @@ class MqttClient {
       // Console.write("xx");
       // print(r'\e[1;31mRed text here\e[m normal text here');
       //\u001b[39;2m${DateTime.now().toString().substring(5)}\u001b[0m
-      developer.log("\u001b[39;2m${DateTime.now().toString().substring(5)}\u001b[0m\u001b[32m↑\u001b[0m $obj", name: "mqtt");
+      loger.log(
+        "\u001b[32m↑\u001b[0m $obj",
+        name: "mqtt",
+      );
     }
   }
 
   void reSub() {
     if (log) {
-      developer.log("reSubscribe Topics: ", name: "mqtt");
+      loger.log("resub topics: ${_subList.keys.toList()}", name: "mqtt");
     }
-    // print("mqtt: reSubscribe Topics ${_subList.keys.toList()}");
-
     _subList.forEach((key, value) {
       var id = MessageIdentifierDispenser().getNextMessageIdentifier();
       _idTopic[id] = _subList[key]!.topics;
@@ -303,7 +294,7 @@ class MqttClient {
     if (_started) return; //once function
     _started = true;
     //register events
-    _conn.onConnect(() {
+    transport.onConnect(() {
       _buf.clear();
       lasthead = null;
       _idTopic.clear();
@@ -312,10 +303,10 @@ class MqttClient {
       _resetTimePeriodic();
       _send(_connectPacket);
     });
-    _conn.onClose(() {
+    transport.onClose(() {
       _onConnectClose();
     });
-    _conn.onMessage((msg) {
+    transport.onMessage((msg) {
       _buf.addAll(msg.message);
       late MqttMessage pack;
       if (lasthead != null) {
@@ -330,7 +321,7 @@ class MqttClient {
           lasthead = null;
         } on Exception catch (e) {
           lasthead = null;
-          developer.log("\u001b[31m$e\u001b[0m");
+          loger.log("\u001b[31m$e\u001b[0m");
           close(e);
           return;
         }
@@ -346,14 +337,14 @@ class MqttClient {
               head, MqttBuffer.fromList(_buf.read(head.remainingLength)));
           _buf.shrink();
         } on Exception catch (e) {
-          developer.log("\u001b[31m$e\u001b[0m");
+          loger.log("\u001b[31m$e\u001b[0m");
           close(e);
           return;
         }
       }
 
       if (log) {
-        developer.log("\u001b[39;2m${DateTime.now().toString().substring(5)}\u001b[0m\u001b[31m↓\u001b[0m ${pack.toString()}", name: "mqtt");
+        loger.log("\u001b[31m↓\u001b[0m ${pack.toString()}", name: "mqtt");
       }
       switch (pack.fixedHead.messageType) {
         case MqttMessageType.connack:
@@ -384,7 +375,7 @@ class MqttClient {
         default:
       }
     });
-    _conn.connect(deadline: keepAlive);
+    transport.connect(deadline: keepAlive);
   }
 
   /// stop this client

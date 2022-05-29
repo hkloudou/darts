@@ -1,20 +1,18 @@
 import 'package:dart_mqtt/dart_mqtt.dart';
 
 void main() async {
-  print("ready");
-  var transport = XTransportTcpClient.from(
+  var transport = XTransportWsClient.from(
     "broker.emqx.io",
-    1883,
+    "/mqtt",
+    8083,
     log: true,
+    protocols: ["mqtt"], // important
   );
-  var cli = MqttClient(
-    transport,
-    log: true,
-  )
+  var cli = MqttClient(transport, log: true, allowReconnect: true)
     ..withKeepalive(10)
     ..withClientID("mqttx_test");
   cli.onMqttConack((msg) {
-    print("onMqttConack: $msg");
+    // print("onMqttConack: $msg");
     if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
       cli.close();
       return;
@@ -26,12 +24,7 @@ void main() async {
     print("reconnecting...");
   });
   cli.start();
-
-  await cli.subscribe(
-    "test/topic",
-    onMessage: (msg) {
-      print(msg);
-    },
-    futureWaitData: true,
-  );
+  cli.subscribe("test/topic", onMessage: (msg) {
+    // print(msg);
+  });
 }

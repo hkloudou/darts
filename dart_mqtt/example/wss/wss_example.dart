@@ -1,14 +1,20 @@
+import 'dart:io';
+
 import 'package:dart_mqtt/dart_mqtt.dart';
 
 void main() async {
-  var transport = XTransportTcpClient.from(
+  var transport = XTransportWsClient.from(
     "broker.emqx.io",
-    8883,
+    "/mqtt",
+    8084,
     log: true,
+    protocols: ["mqtt"], // important for many broker
     credentials: XtransportCredentials.secure(
       // authority: "fake.apple.com",
       // certificates: File('cert/ca.pem').readAsBytesSync(),
+      certificates: File('cert/broker.emqx.io-ca.crt').readAsBytesSync(),
       // clientCertificateBytes: File('cert/client.pem').readAsBytesSync(),
+
       // clientPrivateKeyBytes: File('cert/client.key').readAsBytesSync(),
       onBadCertificate: (_x509, _host) {
         print("onBadCertificate x509.subject: ${_x509.subject}}");
