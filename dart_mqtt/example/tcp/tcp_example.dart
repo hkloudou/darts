@@ -1,7 +1,6 @@
 import 'package:dart_mqtt/dart_mqtt.dart';
 
 void main() async {
-  print("ready");
   var transport = XTransportTcpClient.from(
     "broker.emqx.io",
     1883,
