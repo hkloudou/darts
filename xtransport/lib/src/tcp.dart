@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:xtransport/src/interface.dart';
 import 'package:xtransport/src/jsons.dart';
-import './logger.dart';
+import './logger.dart' as loger;
 import 'package:xtransport/src/shared/credentials.dart';
 
 class XTransportTcpClient implements ITransportClient {
@@ -41,7 +41,7 @@ class XTransportTcpClient implements ITransportClient {
     try {
       _socket?.add(obj.pack());
     } catch (e) {
-      Logger.log(
+      loger.log(
         "send data",
         name: "tcp",
         error: e,
@@ -55,7 +55,7 @@ class XTransportTcpClient implements ITransportClient {
   void close() {
     _socket?.close();
     if (log) {}
-    Logger.log(
+    loger.log(
       "\u001b[31m${"closed"}\u001b[0m",
       time: DateTime.now(),
       name: "tcp",
@@ -117,7 +117,7 @@ class XTransportTcpClient implements ITransportClient {
   Future<void> connect(
       {String? host, int? port, Duration? duration, Duration? deadline}) async {
     if (log) {
-      Logger.log(
+      loger.log(
         "\u001b[32m${"connecting"}\u001b[0m",
         time: DateTime.now(),
         name: "tcp",
@@ -150,7 +150,7 @@ class XTransportTcpClient implements ITransportClient {
       status = ConnectStatus.connected;
       _onConnect?.call();
     } catch (e) {
-      Logger.log(
+      loger.log(
         "connect",
         error: e,
         name: "tcp",
@@ -190,12 +190,12 @@ class XTransportTcpClient implements ITransportClient {
             localInfo: _localInfo));
       },
       onDone: () {
-        Logger.log("onDone", name: "tcp");
+        loger.log("onDone", name: "tcp");
         status = ConnectStatus.disconnect;
         _onClose?.call();
       },
       onError: (e) {
-        Logger.log("onError", name: "tcp", error: e);
+        loger.log("onError", name: "tcp", error: e);
         status = ConnectStatus.disconnect;
         _onError?.call(Error.from(e));
         // _onClose?.call();

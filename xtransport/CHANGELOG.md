@@ -1,4 +1,4 @@
-## 0.0.4+6
+## 0.0.4+7
 * add the websockets support
 
 ## 0.0.4+4

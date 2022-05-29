@@ -6,7 +6,7 @@ import 'package:xtransport/src/interface.dart';
 import 'package:xtransport/src/jsons.dart';
 import 'package:xtransport/src/shared/credentials.dart';
 // import 'dart:developer' as developer;
-import './logger.dart';
+import './logger.dart' as loger;
 
 /// XTransportWsClient
 /// XTransportWsClient.from(host,path,port)
@@ -49,7 +49,7 @@ class XTransportWsClient implements ITransportClient {
       _socket?.add(obj.pack());
     } catch (e) {
       if (log) {
-        Logger.log(
+        loger.log(
           "send data",
           name: "ws",
           error: e,
@@ -62,7 +62,7 @@ class XTransportWsClient implements ITransportClient {
   @override
   void close() {
     if (log) {
-      Logger.log("\u001b[31m${"closed"}\u001b[0m", name: "ws");
+      loger.log("\u001b[31m${"closed"}\u001b[0m", name: "ws");
     }
     _socket?.close();
   }
@@ -106,11 +106,13 @@ class XTransportWsClient implements ITransportClient {
       };
     }
     if (log) {
-      Logger.log(
+      loger.log(
         "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
         name: "ws",
       );
     }
+    // var channel = IOWebSocketChannel.connect(Uri.parse('ws://localhost:1234'));
+    // channel.stream.listen((event) { })
     var _tmpSocket = await WebSocket.connect(
       "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
       protocols: protocols,
@@ -128,7 +130,7 @@ class XTransportWsClient implements ITransportClient {
   Future<void> connect(
       {String? host, int? port, Duration? duration, Duration? deadline}) async {
     if (log) {
-      Logger.log(
+      loger.log(
         "\u001b[32m${"connecting"}\u001b[0m",
         name: "ws",
       );
@@ -145,22 +147,20 @@ class XTransportWsClient implements ITransportClient {
     try {
       _socket = await getConnectionSocket(duration: duration);
       _remoteInfo = RemoteInfo(
-        // address: _socket?.remoteAddress.address ?? "",
-        // host: (credentials.isSecure ? credentials.authority : null) ??
-        //     _socket?.remoteAddress.host ??
-        //     "",
+        address: "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
+        host: _host,
         port: _port,
-        // family: _socket?.remoteAddress.type.name ?? "",
+        family: credentials.isSecure ? "wss" : "ws",
       );
       _localInfo = LocalInfo(
         address: _localInfo.address,
-        // family: _socket?.address.type.name ?? "",
-        // port: _socket?.port ?? 0,
+        family: credentials.isSecure ? "wss" : "ws",
+        port: _port,
       );
       status = ConnectStatus.connected;
       _onConnect?.call();
     } catch (e) {
-      if (log) Logger.log("connect error: $e", name: "ws");
+      if (log) loger.log("connect error: $e", name: "ws");
       status = ConnectStatus.disconnect;
       _onError?.call(Error.from(e));
       _onClose?.call();
@@ -187,12 +187,12 @@ class XTransportWsClient implements ITransportClient {
             localInfo: _localInfo));
       },
       onDone: () {
-        if (log) Logger.log("onDone", name: "ws");
+        if (log) loger.log("onDone", name: "ws");
         status = ConnectStatus.disconnect;
         _onClose?.call();
       },
       onError: (e) {
-        if (log) Logger.log("onError", name: "ws", error: e);
+        if (log) loger.log("onError", name: "ws", error: e);
         status = ConnectStatus.disconnect;
         _onError?.call(Error.from(e));
         // _onClose?.call();
