@@ -1,15 +1,30 @@
 /// DoHResponse
-///
 class DoHResponse {
+  /// response status
   int status = 0;
+
+  /// tc?
   bool tc = false;
+
+  /// rd?
   bool rd = true;
+
+  /// ta?
   bool ra = true;
+
+  /// ad?
   bool ad = false;
+
+  /// cd?
   bool cd = false;
+
+  /// the question the server understood
   DoHQuestion question = DoHQuestion();
+
+  /// the answers ths server replys
   List<DoHAnswer> answers = [];
 
+  /// init
   DoHResponse({
     this.status = 0,
     this.tc = false,
@@ -21,6 +36,7 @@ class DoHResponse {
     required this.answers,
   });
 
+  /// read from json
   DoHResponse.fromJson(Map<String, dynamic> json) {
     status = (json['Status'] as int?) ?? 0;
     tc = (json['TC'] as bool?) ?? false;
@@ -45,6 +61,7 @@ class DoHResponse {
     }
   }
 
+  /// covert to json
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['Status'] = status;
@@ -60,18 +77,23 @@ class DoHResponse {
 }
 
 /// DoHQuestion
-///
 class DoHQuestion {
+  /// domain name
   String name = "";
+
+  /// Request type
   int type = 0;
 
+  /// init
   DoHQuestion({this.name = "", this.type = 0});
 
+  /// read from json
   DoHQuestion.fromJson(Map<String, dynamic> json) {
     name = (json['name'] as String?) ?? "";
     type = (json['type'] as int?) ?? 0;
   }
 
+  /// covert to json
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['name'] = name;
@@ -82,12 +104,25 @@ class DoHQuestion {
 
 /// DoHAnswer
 class DoHAnswer {
+  /// domain name
   String name = "";
+
+  /// ttl
   int ttl = 0;
+
+  /// doh type
   int type = 0;
+
+  /// data
   String data = "";
+
+  /// validUntil is used for cache
   int validUntil = 0;
+
+  /// provider show who provided the resolve
   Uri? provider;
+
+  /// const
   DoHAnswer({
     this.name = "",
     this.ttl = 0,
@@ -96,6 +131,7 @@ class DoHAnswer {
     this.provider,
   }) : validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
 
+  /// read from json
   DoHAnswer.fromJson(Map<String, dynamic> json) {
     name = (json['name'] as String?) ?? "";
     ttl = (json['TTL'] as int?) ?? 0;
@@ -104,6 +140,7 @@ class DoHAnswer {
     validUntil = DateTime.now().millisecondsSinceEpoch + (ttl * 1000);
   }
 
+  /// covert to json
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['name'] = name;

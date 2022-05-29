@@ -1,6 +1,6 @@
 name: doh
 description: doh client to resolve dns, include alidns,google dns and cloudflare
-version: 0.0.3+3
+version: 0.0.3+4
 repository: https://github.com/hkloudou/darts/tree/main/doh
 
 environment:

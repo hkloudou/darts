@@ -16,7 +16,14 @@ class DoH {
   static final DoH _instance = DoH();
   static DoH get instance => _instance;
   List<Uri> _provider;
+
+  /// set provider like this
+  /// ``` dart
+  /// DoH.instance.provider = [DoHProvider.cloudflare1];
+  /// ```
   set provider(List<Uri> value) => _provider = value;
+
+  /// init
   DoH({List<Uri>? provider})
       : _provider = provider ??
             [
