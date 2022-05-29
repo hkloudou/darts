@@ -27,6 +27,9 @@ abstract class ITransportClient {
   /// connectStatus [disconnect, connecting, connected, paused]
   ConnectStatus status = ConnectStatus.disconnect;
 
+  /// should log
+  bool log = false;
+
   /*
     Function
   */

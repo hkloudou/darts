@@ -4,8 +4,8 @@ import 'dart:typed_data';
 
 import 'package:xtransport/src/interface.dart';
 import 'package:xtransport/src/jsons.dart';
+import './logger.dart';
 import 'package:xtransport/src/shared/credentials.dart';
-import 'dart:developer' as developer;
 
 class XTransportTcpClient implements ITransportClient {
   /*
@@ -17,9 +17,10 @@ class XTransportTcpClient implements ITransportClient {
   @override
   ConnectStatus status = ConnectStatus.disconnect;
 
+  @override
   bool log = false;
 
-  String _host;
+  String _ip;
   int _port;
   Socket? _socket;
   Duration? _deadline;
@@ -38,14 +39,11 @@ class XTransportTcpClient implements ITransportClient {
   @override
   void send(ITransportPacket obj) {
     try {
-      // print("send2 $obj");
       _socket?.add(obj.pack());
-      // _socket?.flush();
-      // throw Exception("tt");
     } catch (e) {
-      developer.log(
+      Logger.log(
         "send data",
-        name: "error",
+        name: "tcp",
         error: e,
       );
       // _onError?.call(Error.from(e));
@@ -56,7 +54,8 @@ class XTransportTcpClient implements ITransportClient {
   @override
   void close() {
     _socket?.close();
-    developer.log(
+    if (log) {}
+    Logger.log(
       "\u001b[31m${"closed"}\u001b[0m",
       time: DateTime.now(),
       name: "tcp",
@@ -78,14 +77,15 @@ class XTransportTcpClient implements ITransportClient {
   void onMessage(void Function(Message msg) fn) => _onMessage = fn;
 
   XTransportTcpClient.from(
-    this._host,
+    this._ip,
     this._port, {
     this.log = false,
     this.credentials = const XtransportCredentials.insecure(),
-  });
+  })  : assert(Uri.parse("tls://$_ip").host == _ip),
+        assert(_port > 0 && _port < 65536);
 
   Future<Socket> getConnectionSocket({Duration? duration}) async {
-    var _tmpSocket = await Socket.connect(_host, _port,
+    var _tmpSocket = await Socket.connect(_ip, _port,
         timeout: duration ?? const Duration(seconds: 60));
     if (_tmpSocket.address.type != InternetAddressType.unix) {
       _tmpSocket.setOption(SocketOption.tcpNoDelay, true);
@@ -96,16 +96,13 @@ class XTransportTcpClient implements ITransportClient {
       // http://dartbug.com/37950
       return await SecureSocket.secure(
         _tmpSocket,
-        host: credentials.authority ?? _host,
+        host: credentials.authority ?? _ip,
         context: credentials.securityContext,
-        // keyLog: (txt) {
-        //   print("KL: $txt");
-        // },
         onBadCertificate: (cert) {
           if (credentials.onBadCertificate != null) {
             return credentials.onBadCertificate!(
               cert,
-              credentials.authority ?? _host,
+              credentials.authority ?? _ip,
             );
           }
           return false;
@@ -119,15 +116,14 @@ class XTransportTcpClient implements ITransportClient {
   @override
   Future<void> connect(
       {String? host, int? port, Duration? duration, Duration? deadline}) async {
-    // print("xtransport tcp connect: $host");
     if (log) {
-      developer.log(
+      Logger.log(
         "\u001b[32m${"connecting"}\u001b[0m",
         time: DateTime.now(),
         name: "tcp",
       );
     }
-    _host = host ?? _host;
+    _ip = host ?? _ip;
     _port = port ?? _port;
     _duration = duration ?? _duration;
     _deadline = deadline ?? _deadline;
@@ -154,7 +150,7 @@ class XTransportTcpClient implements ITransportClient {
       status = ConnectStatus.connected;
       _onConnect?.call();
     } catch (e) {
-      developer.log(
+      Logger.log(
         "connect",
         error: e,
         name: "tcp",
@@ -165,22 +161,17 @@ class XTransportTcpClient implements ITransportClient {
       return Future.value();
     }
     _broadcastNotifications(deadline: _deadline);
-    // .then((value) {
-    //   // print("finish boast");
-    // });
     return Future.value();
   }
 
   /// internal function
   Future<StreamSubscription<Uint8List>> _broadcastNotifications(
       {Duration? deadline}) async {
-    // print("bd deadline: $deadline");
     Stream<Uint8List>? _sub = _socket;
     if (deadline != null) {
       _sub = _socket?.timeout(
         deadline * 1.5,
         onTimeout: (sink) {
-          // print("onTimeOut");
           close();
         },
       );
@@ -199,14 +190,12 @@ class XTransportTcpClient implements ITransportClient {
             localInfo: _localInfo));
       },
       onDone: () {
-        // print("xtransport.onDone");
-        developer.log("onDone", name: "tcp");
+        Logger.log("onDone", name: "tcp");
         status = ConnectStatus.disconnect;
         _onClose?.call();
       },
       onError: (e) {
-        // print("xtransport.onError");
-        developer.log("onError", name: "tcp", error: e);
+        Logger.log("onError", name: "tcp", error: e);
         status = ConnectStatus.disconnect;
         _onError?.call(Error.from(e));
         // _onClose?.call();
