@@ -10,8 +10,10 @@ class EColor {
   Color secondaryText = const Color(0xFF909399); //icon
   Color placeholderText = const Color(0xFFC0C4CC);
 
-  Color backgroundColor = const Color.fromRGBO(146, 155, 165, 1);
-  Color scaffoldBackgroundColor = Colors.grey[300]!;
+  Color cardColor = const Color(0xFFC0C4CC);
+  Color dividerColor = const Color(0xFFC0C4CC);
+  Color backgroundColor = const Color(0xFFC0C4CC);
+  Color scaffoldBackgroundColor = const Color(0xFFC0C4CC);
 
   // Color
 
@@ -72,6 +74,8 @@ class EColor {
 
   ThemeData get themeData => ThemeData(
         brightness: brightness,
+        cardColor: cardColor,
+        dividerColor: dividerColor,
         scaffoldBackgroundColor: scaffoldBackgroundColor,
         backgroundColor: backgroundColor,
         iconTheme: IconThemeData(
