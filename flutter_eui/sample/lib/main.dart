@@ -295,7 +295,13 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
-        actions: const [EActionThemeSwith(), CloseButton()],
+        actions: [
+          EActionThemeSwith(
+            light: EColors.light.scaffoldBackgroundColor,
+            dark: EColors.dark.scaffoldBackgroundColor,
+          ),
+          CloseButton()
+        ],
       ),
       body: [
         Switch(
@@ -413,7 +419,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ).parent(({required child}) => AnimatedTheme(
           data: Theme.of(context),
           child: child,
-          // duration: Duration(seconds: 5),
+          // duration: Duration(milliseconds: 200),
         ));
   }
 }
