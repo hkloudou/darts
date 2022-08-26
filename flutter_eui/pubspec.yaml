@@ -1,6 +1,6 @@
 name: flutter_eui
 description: eui is a element sytle ui package for flutter
-version: 0.0.1
+version: 0.0.2
 repository: https://github.com/hkloudou/darts/tree/main/flutter_eui
 
 environment:
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  lottie: ^1.3.0
+  lottie: ^1.4.2
   adaptive_theme: ">=3.0.0"
   styled_widget: ^0.4.0+3
   flutter_easyrefresh: 2.2.2
