@@ -1,4 +1,4 @@
-import 'dart:mirrors';
+// import 'dart:mirrors';
 
 Type _typeOf<T>() => T;
 
@@ -7,17 +7,17 @@ List<int> _directReturn = [
   _typeOf<String>().hashCode,
   _typeOf<int>().hashCode,
 ];
-T _getJsonObject<T>(dynamic _json) {
-  if (_directReturn.contains(_typeOf<T>().hashCode)) {
-    return _json as T;
-  }
-  try {
-    return reflectClass(T)
-        .newInstance(const Symbol('fromJson'), [_json]).reflectee as T;
-  } catch (e) {
-    return _json as T;
-  }
-}
+// T _getJsonObject<T>(dynamic _json) {
+//   if (_directReturn.contains(_typeOf<T>().hashCode)) {
+//     return _json as T;
+//   }
+//   try {
+//     return reflectClass(T)
+//         .newInstance(const Symbol('fromJson'), [_json]).reflectee as T;
+//   } catch (e) {
+//     return _json as T;
+//   }
+// }
 
 // @JsonSerializable(fieldRename: FieldRename.none)
 // @immutable
@@ -44,7 +44,10 @@ class HttpJsonPackage<T> {
   HttpJsonPackage(this._c, this._m, this._d);
   static Type _typeOf<T>() => T;
   @override
-  factory HttpJsonPackage.fromJson(Map<String, dynamic>? json) {
+  factory HttpJsonPackage.fromJson(
+    T Function<T>(dynamic _json) callback,
+    Map<String, dynamic>? json,
+  ) {
     // print(T);
     if (_typeOf<T>().hashCode == _typeOf<dynamic>().hashCode) {
       throw "please use type HttpJsonPackage.fromJson<Type> Type extends fromJson";
@@ -78,9 +81,10 @@ class HttpJsonPackage<T> {
 
     if (data is List) {
       return HttpJsonPackage<T>(
-          code, msg, data.map((e) => _getJsonObject<T>(e)).toList());
+          code, msg, data.map((e) => callback.call<T>(e)).toList());
     }
-    return HttpJsonPackage<T>(code, msg, [(_getJsonObject<T>(data))]);
+
+    return HttpJsonPackage<T>(code, msg, [callback.call<T>(data)]);
     // return HttpJsonPackage<T>.cancel();
   }
   Map<String, dynamic> toJson() {
