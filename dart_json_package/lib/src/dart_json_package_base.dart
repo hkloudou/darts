@@ -45,7 +45,7 @@ class HttpJsonPackage<T> {
   static Type _typeOf<T>() => T;
   @override
   factory HttpJsonPackage.fromJson(
-    T Function<T>(dynamic _json) callback,
+    T Function(dynamic) callback,
     Map<String, dynamic>? json,
   ) {
     // print(T);
@@ -81,10 +81,10 @@ class HttpJsonPackage<T> {
 
     if (data is List) {
       return HttpJsonPackage<T>(
-          code, msg, data.map((e) => callback.call<T>(e)).toList());
+          code, msg, data.map((e) => callback.call(e)).toList());
     }
 
-    return HttpJsonPackage<T>(code, msg, [callback.call<T>(data)]);
+    return HttpJsonPackage<T>(code, msg, [callback.call(data)]);
     // return HttpJsonPackage<T>.cancel();
   }
   Map<String, dynamic> toJson() {
