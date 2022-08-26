@@ -1,35 +1,21 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'dart:mirrors';
 
-typedef _JsonHandlerCallBack<T> = T Function(dynamic json);
 Type _typeOf<T>() => T;
 
-var _jsonHandlerCallBackMap = Map<int, _JsonHandlerCallBack>();
-void addJsonHandle<T>(_JsonHandlerCallBack<T> handle) {
-  _jsonHandlerCallBackMap[_typeOf<T>().hashCode] = handle;
-  _jsonHandlerCallBackMap[_typeOf<List<T>>().hashCode] = ((dynamic obj) {
-    var x = (obj as List<dynamic>?)?.map((e) => handle(e)).toList() ?? [];
-    return x;
-  });
-}
-
-class _ConverterData<T> implements JsonConverter<T, Map<String, dynamic>> {
-  const _ConverterData();
-  @override
-  T fromJson(dynamic json) {
-    if (_jsonHandlerCallBackMap.containsKey(T.hashCode)) {
-      return _jsonHandlerCallBackMap[T.hashCode]!(json) as T;
-    }
-    if (_typeOf<T>().hashCode == _typeOf<Map<String, dynamic>>().hashCode) {
-      return json as T;
-    }
-    print(
-        "L2--1: ${T.hashCode} 2: ${_typeOf<T>().hashCode} 3: ${_typeOf<T>().runtimeType.hashCode}");
-    return json as T;
+List<int> _directReturn = [
+  _typeOf<Map<String, dynamic>>().hashCode,
+  _typeOf<String>().hashCode,
+  _typeOf<int>().hashCode,
+];
+T _getJsonObject<T>(dynamic _json) {
+  if (_directReturn.contains(_typeOf<T>().hashCode)) {
+    return _json as T;
   }
-
-  @override
-  Map<String, dynamic> toJson(T object) {
-    return {};
+  try {
+    return reflectClass(T)
+        .newInstance(const Symbol('fromJson'), [_json]).reflectee as T;
+  } catch (e) {
+    return _json as T;
   }
 }
 
@@ -38,8 +24,8 @@ class _ConverterData<T> implements JsonConverter<T, Map<String, dynamic>> {
 class HttpJsonPackage<T> {
   int _c = -1;
   String _m = "";
-  T? _d;
-  T? get data {
+  List<T> _d;
+  List<T> get datas {
     return this._d;
   }
 
@@ -59,6 +45,10 @@ class HttpJsonPackage<T> {
   static Type _typeOf<T>() => T;
   @override
   factory HttpJsonPackage.fromJson(Map<String, dynamic>? json) {
+    // print(T);
+    if (_typeOf<T>().hashCode == _typeOf<dynamic>().hashCode) {
+      throw "please use type HttpJsonPackage.fromJson<Type> Type extends fromJson";
+    }
     // 读取原生包，然后用兼容模式吧
     var code = json?['c'] as int? ??
         json?['C'] as int? ??
@@ -77,26 +67,35 @@ class HttpJsonPackage<T> {
         "";
     // 如果是空的话，就返回空就好
     if (code != 0 || _typeOf<T>().hashCode == _typeOf<void>().hashCode) {
-      return HttpJsonPackage<T>(code, msg, null);
+      return HttpJsonPackage<T>(code, msg, []);
     }
 
-    //对data进行解析
-    return HttpJsonPackage<T>(
-      code,
-      msg,
-      _ConverterData<T>().fromJson(json?['d'] ??
-          json?['D'] ??
-          json?['data'] ??
-          json?['Data'] ??
-          json?['DATA']),
-    );
+    var data = json?['d'] ??
+        json?['D'] ??
+        json?['data'] ??
+        json?['Data'] ??
+        json?['DATA'];
+
+    if (data is List) {
+      return HttpJsonPackage<T>(
+          code, msg, data.map((e) => _getJsonObject<T>(e)).toList());
+    }
+    return HttpJsonPackage<T>(code, msg, [(_getJsonObject<T>(data))]);
+    // return HttpJsonPackage<T>.cancel();
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      "c": _c,
+      "m": _m,
+      "d": _d,
+    };
   }
 
   factory HttpJsonPackage.cancel() {
-    return HttpJsonPackage<T>(-999, "", null);
+    return HttpJsonPackage<T>(-999, "", []);
   }
 
   factory HttpJsonPackage.error(int code, String msg) {
-    return HttpJsonPackage<T>(code, msg, null);
+    return HttpJsonPackage<T>(code, msg, []);
   }
 }
