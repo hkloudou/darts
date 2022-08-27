@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 /// Entry point to change/modify theme or access theme related information
 /// from [EThemeAdapter].

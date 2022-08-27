@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_eui/common/colors.dart';
-import 'package:lottie/src/model/content/shape_group.dart';
+import 'package:lottie/src/model/content/shape_group.dart' show ShapeGroup;
 import 'package:lottie/src/model/content/shape_fill.dart';
 import 'package:lottie/src/value/keyframe.dart';
 import 'package:flutter_eui/flutter_eui.dart';
-import 'dart:developer' as dev;
+// import 'dart:developer' as dev;
 
 class EActionThemeSwith extends StatefulWidget {
   const EActionThemeSwith({Key? key, this.width = 50, this.light, this.dark})
@@ -53,9 +52,12 @@ class _EActionThemeSwithState extends State<EActionThemeSwith>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        var brightness = AdaptiveTheme.maybeOf(context)?.brightness;
-        if (brightness == null) return;
-        if (brightness == Brightness.dark) {
+        var mode = AdaptiveTheme.maybeOf(context)?.mode;
+        var brightness =
+            AdaptiveTheme.maybeOf(context)?.brightness ?? Brightness.light;
+        if (mode == null) return;
+
+        if ((mode.isSystem && brightness == Brightness.light) || mode.isLight) {
           _controller.reverse();
           AdaptiveTheme.maybeOf(context)?.setLight();
         } else {

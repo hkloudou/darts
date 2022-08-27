@@ -1,8 +1,9 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:flutter_eui/flutter_eui.dart';
-import 'package:material_color_utilities/palettes/core_palette.dart';
 
-var base = Color.fromRGBO(246, 203, 61, 1);
+var base = const Color.fromRGBO(246, 203, 61, 1);
 
 // const seed = Color(0xFF6750A4);
 var seed = Colors.yellow;
@@ -68,27 +69,27 @@ void main() async {
   // var p = CorePalette.of(Colors.yellow.shade50.value);
   // print(p.primary.get(1));
   EColors.light.mergaWith(
-    primaryText: Color.fromRGBO(32, 38, 48, 1), //Primary Text    主灰
-    regularText: Color.fromRGBO(132, 142, 156, 1), //Regular Text 常规灰，文字
-    secondaryText: Color.fromRGBO(146, 155, 165, 1),
-    placeholderText: Color.fromRGBO(181, 189, 199, 1),
-    scaffoldBackgroundColor: Color.fromRGBO(244, 245, 246, 1),
-    backgroundColor: Color.fromRGBO(254, 255, 255, 1),
+    primaryText: const Color.fromRGBO(32, 38, 48, 1), //Primary Text    主灰
+    regularText: const Color.fromRGBO(132, 142, 156, 1), //Regular Text 常规灰，文字
+    secondaryText: const Color.fromRGBO(146, 155, 165, 1),
+    placeholderText: const Color.fromRGBO(181, 189, 199, 1),
+    scaffoldBackgroundColor: const Color.fromRGBO(244, 245, 246, 1),
+    backgroundColor: const Color.fromRGBO(254, 255, 255, 1),
     // placeholderColor: Color.fromRGBO(254, 255, 255, 1),
     // backgroundColor: Color.fromRGBO(244, 245, 246, 1),
   );
   EColors.dark.mergaWith(
-    primaryText: Color.fromRGBO(234, 236, 239, 1), //E6E8EB
-    regularText: Color.fromRGBO(132, 142, 156, 1),
-    secondaryText: Color.fromRGBO(111, 122, 138, 1),
-    placeholderText: Color.fromRGBO(51, 59, 70, 1),
+    primaryText: const Color.fromRGBO(234, 236, 239, 1), //E6E8EB
+    regularText: const Color.fromRGBO(132, 142, 156, 1),
+    secondaryText: const Color.fromRGBO(111, 122, 138, 1),
+    placeholderText: const Color.fromRGBO(51, 59, 70, 1),
 
     // placeholder: Color.fromRGBO(41, 49, 61, 1),
     // background: Color.fromRGBO(32, 38, 48, 1),
     // borderBase: Color.fromRGBO(51, 59, 70, 1), //#333B46
     // dividerColor:
-    backgroundColor: Color.fromRGBO(30, 38, 48, 1),
-    scaffoldBackgroundColor: Color.fromRGBO(22, 31, 38, 1),
+    backgroundColor: const Color.fromRGBO(30, 38, 48, 1),
+    scaffoldBackgroundColor: const Color.fromRGBO(22, 31, 38, 1),
   );
   WidgetsFlutterBinding.ensureInitialized();
   final savedThemeMode = await AdaptiveTheme.getThemeMode();
@@ -133,7 +134,7 @@ class MyApp extends StatelessWidget {
         title: 'Flutter Demo',
         theme: theme,
         darkTheme: darkTheme,
-        home: MyHomePage(title: 'Flutter Demo Home Page'),
+        home: const MyHomePage(title: 'Flutter Demo Home Page'),
       ),
     );
   }
@@ -300,7 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
             light: EColors.light.scaffoldBackgroundColor,
             dark: EColors.dark.scaffoldBackgroundColor,
           ),
-          CloseButton()
+          const CloseButton()
         ],
       ),
       body: [
@@ -318,7 +319,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ).gestures(
           onTap: () => showAboutDialog(
             applicationName: "name",
-            applicationIcon: Icon(Icons.abc_outlined),
+            applicationIcon: const Icon(Icons.abc_outlined),
             applicationVersion: "1.0.0",
             applicationLegalese: "this is a document about our system",
             context: context,
