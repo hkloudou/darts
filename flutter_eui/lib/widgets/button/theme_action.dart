@@ -99,10 +99,10 @@ class _EActionThemeSwithState extends State<EActionThemeSwith>
               ((composition.getPrecomps("comp_1")![1].shapes[0] as ShapeGroup)
                       .items[1] as ShapeFill)
                   .color!;
-          var sp2 =
-              ((composition.getPrecomps("comp_0")![0].shapes[0] as ShapeGroup)
-                      .items[9] as ShapeFill)
-                  .color!;
+          // var sp2 =
+          //     ((composition.getPrecomps("comp_0")![0].shapes[0] as ShapeGroup)
+          //             .items[9] as ShapeFill)
+          //         .color!;
           sp.keyframes[0] = _copy(composition, sp.keyframes[0],
               startValue: widget.light ?? sp.keyframes[0].startValue,
               endValue: widget.dark ?? sp.keyframes[0].endValue);
