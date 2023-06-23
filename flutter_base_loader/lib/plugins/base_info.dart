@@ -70,15 +70,15 @@ class BaseInfo {
         model = data.browserName.toString();
       } else if (Platform.isAndroid) {
         final data = await info.androidInfo;
-        guid = data.androidId ?? '';
-        computerName = data.host ?? '';
-        model = data.model ?? '';
+        guid = data.serialNumber;
+        computerName = data.host;
+        model = data.model;
         // _data.device
       } else if (Platform.isIOS) {
         final data = await info.iosInfo;
         guid = data.identifierForVendor ?? '';
-        computerName = data.name ?? '';
-        model = data.model ?? '';
+        computerName = data.name;
+        model = data.model;
       } else if (Platform.isLinux) {
         final data = await info.linuxInfo;
         guid = data.machineId ?? '';
