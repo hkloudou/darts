@@ -1,31 +1,39 @@
-// import 'dart:mirrors';
-
+typedef JsonHandlerCallBack<T> = T Function(dynamic json);
 Type _typeOf<T>() => T;
+
+var _jsonHandlerCallBackMap = <int, JsonHandlerCallBack>{};
+void registeJsonHandle<T>(JsonHandlerCallBack<T> handle) {
+  _jsonHandlerCallBackMap[_typeOf<T>().hashCode] = handle;
+  _jsonHandlerCallBackMap[_typeOf<List<T>>().hashCode] = ((dynamic obj) {
+    var x = (obj as List<dynamic>?)?.map((e) => handle(e)).toList() ?? [];
+    return x;
+  });
+}
 
 List<int> _directReturn = [
   _typeOf<Map<String, dynamic>>().hashCode,
   _typeOf<String>().hashCode,
   _typeOf<int>().hashCode,
 ];
-// T _getJsonObject<T>(dynamic _json) {
-//   if (_directReturn.contains(_typeOf<T>().hashCode)) {
-//     return _json as T;
-//   }
-//   try {
-//     return reflectClass(T)
-//         .newInstance(const Symbol('fromJson'), [_json]).reflectee as T;
-//   } catch (e) {
-//     return _json as T;
-//   }
-// }
+
+T fromJson<T>(dynamic json) {
+  if (_jsonHandlerCallBackMap.containsKey(T.hashCode)) {
+    return _jsonHandlerCallBackMap[T.hashCode]!(json) as T;
+  }
+  if (_directReturn.contains(T.hashCode)) {
+    return json as T;
+  }
+
+  return json as T;
+}
 
 // @JsonSerializable(fieldRename: FieldRename.none)
 // @immutable
 class HttpJsonPackage<T> {
   int _c = -1;
   String _m = "";
-  List<T> _d;
-  List<T> get datas {
+  T? _d;
+  T? get data {
     return this._d;
   }
 
@@ -70,36 +78,41 @@ class HttpJsonPackage<T> {
         "";
     // 如果是空的话，就返回空就好
     if (code != 0 || _typeOf<T>().hashCode == _typeOf<void>().hashCode) {
-      return HttpJsonPackage<T>(code, msg, []);
+      return HttpJsonPackage<T>(code, msg, null);
     }
-
-    var data = json?['d'] ??
-        json?['D'] ??
-        json?['data'] ??
-        json?['Data'] ??
-        json?['DATA'];
-
-    if (data is List) {
+    T? data;
+    try {
+      data = fromJson<T>(json?['d'] ??
+          json?['D'] ??
+          json?['data'] ??
+          json?['Data'] ??
+          json?['DATA']);
+    } catch (e) {
       return HttpJsonPackage<T>(
-          code, msg, data.map((e) => callback.call(e)).toList());
+        -1,
+        "err:" + e.toString(),
+        null,
+      );
     }
-
-    return HttpJsonPackage<T>(code, msg, [callback.call(data)]);
-    // return HttpJsonPackage<T>.cancel();
+    return HttpJsonPackage<T>(
+      code,
+      msg,
+      data,
+    );
   }
-  Map<String, dynamic> toJson() {
-    return {
-      "c": _c,
-      "m": _m,
-      "d": _d,
-    };
-  }
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     "c": _c,
+  //     "m": _m,
+  //     "d": _d,
+  //   };
+  // }
 
   factory HttpJsonPackage.cancel() {
-    return HttpJsonPackage<T>(-999, "", []);
+    return HttpJsonPackage<T>(-999, "", null);
   }
 
   factory HttpJsonPackage.error(int code, String msg) {
-    return HttpJsonPackage<T>(code, msg, []);
+    return HttpJsonPackage<T>(code, msg, null);
   }
 }
