@@ -71,49 +71,28 @@ class _EActionThemeSwithState extends State<EActionThemeSwith>
         package: "flutter_eui",
         width: widget.width,
         controller: _controller,
-        // delegates: LottieDelegates(),
+        // filterQuality: FilterQuality.,
         options: LottieOptions(enableMergePaths: true),
-        // onWarning: (str) => print("Wain:$str"),
         onLoaded: (composition) {
           _controller.duration = composition.duration;
           var mode =
               AdaptiveTheme.maybeOf(context)?.mode ?? AdaptiveThemeMode.system;
           var brightness =
               AdaptiveTheme.maybeOf(context)?.brightness ?? Brightness.light;
-          // Theme.of(context)
-          // print(
-          //     "li:${(mode.isSystem && brightness == Brightness.light) || mode.isLight}");
-          // print("s:${composition.startFrame}");
-          // print("e:${composition.endFrame}");
-          // print("v:${_controller.value}");
           if ((mode.isSystem && brightness == Brightness.light) ||
               mode.isLight) {
             // _controller.value = composition.startFrame;
           } else {
             _controller.value = composition.endFrame;
           }
-          // _controller.value = composition.endFrame;
-          // print("ol");
-          // if (widget.light)
           var sp =
               ((composition.getPrecomps("comp_1")![1].shapes[0] as ShapeGroup)
                       .items[1] as ShapeFill)
                   .color!;
-          // var sp2 =
-          //     ((composition.getPrecomps("comp_0")![0].shapes[0] as ShapeGroup)
-          //             .items[9] as ShapeFill)
-          //         .color!;
+
           sp.keyframes[0] = _copy(composition, sp.keyframes[0],
               startValue: widget.light ?? sp.keyframes[0].startValue,
               endValue: widget.dark ?? sp.keyframes[0].endValue);
-          // sp.keyframes[0].endFrame =
-          //     49; // i don't know why when i decrease the endFrame from 50 to 49 makes the color true,but error.
-          // sp2.keyframes[0] = _copy(
-          //   composition,
-          //   sp2.keyframes[0],
-          //   startValue: Colors.red,
-          //   endValue: Colors.red,
-          // );
         },
       ),
     ).cursor();

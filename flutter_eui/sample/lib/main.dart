@@ -298,10 +298,12 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         actions: [
           EActionThemeSwith(
-            light: EColors.light.scaffoldBackgroundColor,
-            dark: EColors.dark.scaffoldBackgroundColor,
+            light: EColors.light.primaryText,
+            dark: EColors.dark.primaryText,
           ),
-          const CloseButton()
+          const CloseButton(),
+          const EIconButtonClose(),
+          const EIconButtonCopy(),
         ],
       ),
       body: [
