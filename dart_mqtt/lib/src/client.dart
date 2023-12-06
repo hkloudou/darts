@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'mqtt.dart';
 import 'package:dart_mqtt/dart_mqtt.dart';
 import 'package:xtransport/xtransport.dart';
-import './logger.dart' as loger;
+import 'logger_io.dart' if (dart.library.html) 'logger_html.dart' as loger;
 
 typedef EvtMqttPublishArrived = void Function(MqttMessagePublish msg);
 
@@ -235,7 +235,7 @@ class MqttClient {
 
   void _resetTimePeriodic() {
     if (transport.status != ConnectStatus.connected) {
-      loger.log("_resetTimePeriodic");
+      loger.log("_resetTimePeriodic: ${transport.status}");
     }
     var _seconds = _connectPacket.getKeepalive();
     // _seconds = (_seconds * 0.5).toInt();

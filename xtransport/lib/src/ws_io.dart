@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:xtransport/src/interface.dart';
 import 'package:xtransport/src/jsons.dart';
-
-import 'logger_io.dart' if (dart.library.html) 'logger_html.dart' as loger;
 import 'package:xtransport/src/shared/credentials.dart';
+import 'logger_io.dart' as loger;
 
-class XTransportTcpClient implements ITransportClient {
+class XTransportWsClient implements ITransportClient {
   /*
     interface fields 
   */
@@ -21,11 +19,15 @@ class XTransportTcpClient implements ITransportClient {
   @override
   bool log = false;
 
-  String _ip;
+  String _host;
+  final String _path;
   int _port;
-  Socket? _socket;
+  WebSocket? _socket;
   Duration? _deadline;
   Duration _duration = Duration(seconds: 20);
+
+  /// websocket protocols, in mqtt,it should contain mqtt
+  Iterable<String>? protocols;
 
   RemoteInfo _remoteInfo = RemoteInfo();
   LocalInfo _localInfo = LocalInfo();
@@ -42,26 +44,23 @@ class XTransportTcpClient implements ITransportClient {
     try {
       _socket?.add(obj.pack());
     } catch (e) {
-      loger.log(
-        "send data",
-        name: "tcp",
-        error: e,
-      );
-      // _onError?.call(Error.from(e));
+      if (log) {
+        loger.log(
+          "send data",
+          name: "ws",
+          error: e,
+        );
+      }
       close();
     }
   }
 
   @override
   void close() {
+    if (log) {
+      loger.log("\u001b[31m${"closed"}\u001b[0m", name: "ws");
+    }
     _socket?.close();
-    if (log) {}
-    loger.log(
-      "\u001b[31m${"closed"}\u001b[0m",
-      time: DateTime.now(),
-      name: "tcp",
-    );
-    _socket?.destroy();
   }
 
   // Events
@@ -77,54 +76,62 @@ class XTransportTcpClient implements ITransportClient {
   @override
   void onMessage(void Function(Message msg) fn) => _onMessage = fn;
 
-  XTransportTcpClient.from(
-    this._ip,
+  XTransportWsClient.from(
+    this._host,
+    this._path,
     this._port, {
     this.log = false,
+    this.protocols,
     this.credentials = const XtransportCredentials.insecure(),
-  })  : assert(Uri.parse("tls://$_ip").host == _ip),
+  })  : assert(Uri.parse("https://$_host").host == _host),
+        assert(_path.startsWith("/")),
         assert(_port > 0 && _port < 65536);
 
-  Future<Socket> getConnectionSocket({Duration? duration}) async {
-    var _tmpSocket = await Socket.connect(_ip, _port,
-        timeout: duration ?? const Duration(seconds: 60));
-    if (_tmpSocket.address.type != InternetAddressType.unix) {
-      _tmpSocket.setOption(SocketOption.tcpNoDelay, true);
-    }
-
+  Future<WebSocket> getConnectionSocket({Duration? duration}) async {
+    HttpClient? customCient;
     if (credentials.isSecure) {
-      // Todo(sigurdm): We want to pass supportedProtocols: ['h2'].
-      // http://dartbug.com/37950
-      return await SecureSocket.secure(
-        _tmpSocket,
-        host: credentials.authority ?? _ip,
-        context: credentials.securityContext,
-        onBadCertificate: (cert) {
-          if (credentials.onBadCertificate != null) {
-            return credentials.onBadCertificate!(
-              cert,
-              credentials.authority ?? _ip,
-            );
-          }
-          return false;
-        },
+      customCient = HttpClient(context: credentials.securityContext);
+      customCient.badCertificateCallback = (cert, host, port) {
+        if (credentials.onBadCertificate != null) {
+          return credentials.onBadCertificate!(
+            cert,
+            credentials.authority ?? _host,
+          );
+        }
+        return false;
+      };
+    }
+    if (log) {
+      loger.log(
+        "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
+        name: "ws",
       );
     }
+    // var channel = IOWebSocketChannel.connect(Uri.parse('ws://localhost:1234'));
+    // channel.stream.listen((event) { })
+    var _tmpSocket = await WebSocket.connect(
+      "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
+      protocols: protocols,
+      // headers: {
+      //   "host": credentials.authority,
+      // },
+      customClient: customCient,
+    );
+
     return _tmpSocket;
   }
 
-  /// [TCP] connect
+  /// [WS] connect
   @override
   Future<void> connect(
       {String? host, int? port, Duration? duration, Duration? deadline}) async {
     if (log) {
       loger.log(
         "\u001b[32m${"connecting"}\u001b[0m",
-        time: DateTime.now(),
-        name: "tcp",
+        name: "ws",
       );
     }
-    _ip = host ?? _ip;
+    _host = host ?? _host;
     _port = port ?? _port;
     _duration = duration ?? _duration;
     _deadline = deadline ?? _deadline;
@@ -136,48 +143,33 @@ class XTransportTcpClient implements ITransportClient {
     try {
       _socket = await getConnectionSocket(duration: duration);
       _remoteInfo = RemoteInfo(
-        address: _socket?.remoteAddress.address ?? "",
-        host: (credentials.isSecure ? credentials.authority : null) ??
-            _socket?.remoteAddress.host ??
-            "",
+        address: "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
+        host: _host,
         port: _port,
-        family: _socket?.remoteAddress.type.name ?? "",
+        family: credentials.isSecure ? "wss" : "ws",
       );
       _localInfo = LocalInfo(
         address: _localInfo.address,
-        family: _socket?.address.type.name ?? "",
-        port: _socket?.port ?? 0,
+        family: credentials.isSecure ? "wss" : "ws",
+        port: _port,
       );
       status = ConnectStatus.connected;
       _onConnect?.call();
     } catch (e) {
-      loger.log(
-        "connect",
-        error: e,
-        name: "tcp",
-      );
+      if (log) loger.log("connect error: $e", name: "ws");
       status = ConnectStatus.disconnect;
       _onError?.call(Error.from(e));
       _onClose?.call();
       return Future.value();
     }
-    _broadcastNotifications(deadline: _deadline);
+    _socket?.pingInterval = deadline;
+    _broadcastNotifications();
     return Future.value();
   }
 
   /// internal function
-  Future<StreamSubscription<Uint8List>> _broadcastNotifications(
-      {Duration? deadline}) async {
-    Stream<Uint8List>? _sub = _socket;
-    if (deadline != null) {
-      _sub = _socket?.timeout(
-        deadline * 1.5,
-        onTimeout: (sink) {
-          close();
-        },
-      );
-    }
-    var ret = _sub?.listen(
+  Future<StreamSubscription<dynamic>?> _broadcastNotifications() async {
+    var ret = _socket?.listen(
       (streamData) {
         _onMessage?.call(Message(
             message: streamData,
@@ -191,12 +183,12 @@ class XTransportTcpClient implements ITransportClient {
             localInfo: _localInfo));
       },
       onDone: () {
-        loger.log("onDone", name: "tcp");
+        if (log) loger.log("onDone", name: "ws");
         status = ConnectStatus.disconnect;
         _onClose?.call();
       },
       onError: (e) {
-        loger.log("onError", name: "tcp", error: e);
+        if (log) loger.log("onError", name: "ws", error: e);
         status = ConnectStatus.disconnect;
         _onError?.call(Error.from(e));
         // _onClose?.call();

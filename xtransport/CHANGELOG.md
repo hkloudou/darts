@@ -1,3 +1,6 @@
+## 0.0.5
+* add web platform support
+
 ## 0.0.4+7
 * add the websockets support
 
