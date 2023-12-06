@@ -6,7 +6,7 @@ environment:
   sdk: '>=3.1.5 <4.0.0'
 
 dependencies:
-  xtransport: 0.0.5
+  xtransport: ^0.0.5
 dev_dependencies:
   lints: ^1.0.0
   test: ^1.16.0
