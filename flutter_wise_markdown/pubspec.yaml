@@ -1,0 +1,17 @@
+name: flutter_wise_markdown
+description: flutter_wise_markdown
+version: 0.0.1
+# homepage:
+
+environment:
+  sdk: '>=3.0.5 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: any
+  flutter_markdown: 0.6.18+2
+  dio: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
