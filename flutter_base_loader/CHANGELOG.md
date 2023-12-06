@@ -1,3 +1,6 @@
+## 0.1.0
+* fix some bug, fix unknow
+
 ## 0.0.9+3
 * fix some bug
  

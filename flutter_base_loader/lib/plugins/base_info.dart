@@ -96,7 +96,7 @@ class BaseInfo {
       }
     }
     //set guid as random
-    if (guid.isEmpty) {
+    if (guid.isEmpty || guid == "unknown") {
       guid = const Uuid().v4();
       await prefs.setString(key, guid);
     }
