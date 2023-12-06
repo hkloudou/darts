@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  lottie: ^3.0.0-alpha.3
-  adaptive_theme: ">=3.4.1"
+  lottie: ^2.7.0
+  adaptive_theme: ^3.4.1
   styled_widget: ^0.4.1
   # flutter_easyrefresh: 2.2.2
 dev_dependencies:
