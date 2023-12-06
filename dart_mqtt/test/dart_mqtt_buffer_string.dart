@@ -4,8 +4,6 @@ void main() {
   group('Mqtt buffer', () {
     setUp(() {});
 
-    test('type', () {
-      
-    });
+    test('type', () {});
   });
 }

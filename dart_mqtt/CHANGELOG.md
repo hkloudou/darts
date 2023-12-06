@@ -1,3 +1,6 @@
+## 1.0.3
+- update xtransport to support web platform
+
 ## 1.0.2+4
 - update xtransport
 
