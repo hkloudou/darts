@@ -1,6 +1,6 @@
 name: dart_json_package
 description: dart json package info
-version: 1.0.4
+version: 1.0.5
 repository: https://github.com/hkloudou/darts/tree/main/dart_json_package
 environment:
   sdk: '>=3.0.5 <4.0.0'

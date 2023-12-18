@@ -53,7 +53,6 @@ class HttpJsonPackage<T> {
   static Type _typeOf<T>() => T;
   @override
   factory HttpJsonPackage.fromJson(
-    T Function(dynamic) callback,
     Map<String, dynamic>? json,
   ) {
     // print(T);

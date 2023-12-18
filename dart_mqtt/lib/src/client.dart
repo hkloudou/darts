@@ -30,6 +30,8 @@ class MqttClient {
 
   Duration? keepAlive;
 
+  MqttMessageConnect get connectPacket => _connectPacket;
+
   /// custom reconnect delay
   Duration Function()? customReconnectDelayCB;
   final MqttMessageConnect _connectPacket = MqttMessageConnect();
@@ -254,12 +256,13 @@ class MqttClient {
     if (_stoped) return;
     if (_paused) return;
     if (transport.status != ConnectStatus.connected) {
-      // developer.log("_conn.status != ConnectStatus.connected: ${_conn.status}");
+      loger.log("_conn.status != ConnectStatus.connected: ${transport.status}");
       // developer.log(obj.toString());
       return;
     }
     // if (obj.)
     // _resetTimePeriodic();
+    // print("send");
     transport.send(obj);
 // log(message);
 
