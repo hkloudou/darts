@@ -373,7 +373,18 @@ class MqttClient {
           break;
         case MqttMessageType.publish:
           var obj = pack as MqttMessagePublish;
-          _dataArriveCallBack[obj.topicName]?.call(obj);
+          final wildcardKeys = _dataArriveCallBack.keys.where((key) =>
+            key.split('#').length == 2,
+          ).map((key) =>
+            key.split('#').first,
+          ).where((key) =>
+            obj.topicName.startsWith(key),
+          ).firstOrNull;
+          if (wildcardKeys != null) {
+            _dataArriveCallBack['${wildcardKeys}#']?.call(obj);
+          } else {
+            _dataArriveCallBack[obj.topicName]?.call(obj);
+          }
           break;
         default:
       }
