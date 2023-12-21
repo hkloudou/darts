@@ -1,3 +1,6 @@
+## 1.0.4
+- wildcards topic support
+
 ## 1.0.3
 - update xtransport to support web platform
 
