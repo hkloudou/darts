@@ -15,6 +15,7 @@ class MqttClient {
   bool _started = false;
   bool _paused = false;
   bool _stoped = false;
+  bool _disposed = false;
   bool log = false;
 
   final _buf = MqttBuffer();
@@ -211,6 +212,12 @@ class MqttClient {
     transport.close();
   }
 
+  /// eliminate functionality
+  void dispose() {
+    _disposed = true; // to stop recursive calls of `_resetTimePeriodic()`
+    stop();
+  }
+
   void _onConnectClose() {
     if (_stoped) return; //return if stoped
 
@@ -236,6 +243,8 @@ class MqttClient {
   }
 
   void _resetTimePeriodic() {
+    if(_disposed) return; // to stop recursive calls of `_resetTimePeriodic()`
+
     if (transport.status != ConnectStatus.connected) {
       loger.log("_resetTimePeriodic: ${transport.status}");
     }
