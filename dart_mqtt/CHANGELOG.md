@@ -1,3 +1,6 @@
+## 1.0.5
+- fixed some bug
+
 ## 1.0.4
 - wildcards topic support
 
