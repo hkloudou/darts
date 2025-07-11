@@ -18,7 +18,7 @@ class MqttMessageFactory {
         return MqttMessageUnSuback.fromByteBuffer(header, messageStream);
       default:
     }
-    throw Exception('{$header.toString()');
+    throw Exception('Unsupported message type: ${header.messageType.name} (${header.toString()})');
   }
 
   static MqttFixedHead readHead(MqttBuffer messageStream) {

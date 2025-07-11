@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'mqtt.dart';
-import 'package:dart_mqtt/dart_mqtt.dart';
+import 'utility/dart_mqtt_enum.dart';
 import 'package:xtransport/xtransport.dart';
 import 'logger_io.dart' if (dart.library.html) 'logger_html.dart' as loger;
 
@@ -14,7 +14,7 @@ class MqttClient {
   ITransportClient transport;
   bool _started = false;
   bool _paused = false;
-  bool _stoped = false;
+  bool _stopped = false;
   bool _disposed = false;
   bool log = false;
 
@@ -219,7 +219,7 @@ class MqttClient {
   }
 
   void _onConnectClose() {
-    if (_stoped) return; //return if stoped
+    if (_stopped) return; //return if stopped
 
     if (_paused) {
       //check 1 second later if paused
@@ -243,7 +243,7 @@ class MqttClient {
   }
 
   void _resetTimePeriodic() {
-    if(_disposed) return; // to stop recursive calls of `_resetTimePeriodic()`
+    if (_disposed) return; // to stop recursive calls of `_resetTimePeriodic()`
 
     if (transport.status != ConnectStatus.connected) {
       loger.log("_resetTimePeriodic: ${transport.status}");
@@ -262,7 +262,7 @@ class MqttClient {
   void _send(ITransportPacket obj) {
     // if (log) print("mqtt:ready send\n$obj");
 
-    if (_stoped) return;
+    if (_stopped) return;
     if (_paused) return;
     if (transport.status != ConnectStatus.connected) {
       loger.log("_conn.status != ConnectStatus.connected: ${transport.status}");
@@ -302,7 +302,7 @@ class MqttClient {
 
   /// start connect
   void start() {
-    if (_stoped) return;
+    if (_stopped) return;
     if (_started) return; //once function
     _started = true;
     //register events
@@ -320,7 +320,7 @@ class MqttClient {
     });
     transport.onMessage((msg) {
       _buf.addAll(msg.message);
-      while(_buf.availableBytes > 0){
+      while (_buf.availableBytes > 0) {
         late MqttMessage pack;
         if (lasthead != null) {
           if (_buf.availableBytes < lasthead!.remainingLength) {
@@ -339,6 +339,10 @@ class MqttClient {
             return;
           }
         } else {
+          // Check if buffer has at least 1 byte for reading the header
+          if (_buf.availableBytes < 1) {
+            return; // Wait for more data
+          }
           var head = MqttMessageFactory.readHead(_buf);
           if (_buf.availableBytes < head.remainingLength) {
             lasthead = head;
@@ -405,7 +409,7 @@ class MqttClient {
 
   /// stop this client
   void stop() {
-    _stoped = true;
+    _stopped = true;
     pause();
   }
 }

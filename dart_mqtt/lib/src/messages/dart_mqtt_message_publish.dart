@@ -40,7 +40,7 @@ class MqttMessagePublish extends MqttMessage {
     MqttBuffer _variableHeader = MqttBuffer();
     _variableHeader.writeUtf8String(_topicName);
     if (fixedHead.qos.index > 0) {
-      messageStream.writeInteger(msgid);
+      _variableHeader.writeInteger(msgid);
     }
     fixedHead.remainingLength = _variableHeader.length + data.length;
     messageStream.addAll(fixedHead.headerBytes());

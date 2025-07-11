@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:dart_mqtt/dart_mqtt.dart';
 import 'package:xtransport/xtransport.dart';
 
 import 'utility/dart_mqtt_enum.dart';

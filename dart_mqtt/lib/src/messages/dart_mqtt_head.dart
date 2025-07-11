@@ -33,9 +33,19 @@ class MqttFixedHead {
     int sizeByte;
     var byteCount = 0;
     do {
+      // Safety check: prevent infinite loop with malformed data
+      if (buf.availableBytes == 0) {
+        throw Exception('Unexpected end of buffer while reading remaining length');
+      }
       sizeByte = buf.readBits();
       lengthBytes.add(sizeByte);
     } while (++byteCount <= 4 && (sizeByte & 0x80) == 0x80);
+    
+    // Additional safety: check if we exceeded the 4-byte limit
+    if (byteCount > 4) {
+      throw Exception('Invalid remaining length encoding: exceeds 4 bytes');
+    }
+    
     return Uint8List.fromList(lengthBytes);
   }
 
@@ -102,7 +112,7 @@ class MqttFixedHead {
   /// 2.2 Fixed header retain 0b00001000(`bit 3`)
   bool get dup => (_fixedHeaderByte & 8) == 8;
   set dup(bool value) {
-    _fixedHeaderByte = _fixedHeaderByte & 0xFF | 8;
+    _fixedHeaderByte = (_fixedHeaderByte & 0xFF) | 8;
     if (!value) _fixedHeaderByte = _fixedHeaderByte ^ 8;
   }
 
@@ -117,7 +127,7 @@ class MqttFixedHead {
   /// 2.2 Fixed header retain 0b00000001(`bit 0`)
   bool get retain => _fixedHeaderByte & 1 == 1;
   set retain(bool value) {
-    _fixedHeaderByte = _fixedHeaderByte & 0xFF | 1;
+    _fixedHeaderByte = (_fixedHeaderByte & 0xFF) | 1;
     if (!value) _fixedHeaderByte = _fixedHeaderByte ^ 1;
   }
 
