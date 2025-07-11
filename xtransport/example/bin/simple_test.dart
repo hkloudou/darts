@@ -42,7 +42,8 @@ void main() {
       port: 8080,
       size: 5);
 
-  var localInfo = LocalInfo(address: "local-address", family: "tcp", port: 8080);
+  var localInfo =
+      LocalInfo(address: "local-address", family: "tcp", port: 8080);
 
   var message = Message(
       message: Uint8List.fromList([1, 2, 3, 4, 5]),

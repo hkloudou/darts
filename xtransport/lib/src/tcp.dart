@@ -158,7 +158,7 @@ class XTransportTcpClient implements ITransportClient {
       );
       status = ConnectStatus.disconnect;
       _onError?.call(XTransportError.from(e));
-      _onClose?.call();
+      // Remove _onClose call here - connection was never established
       return Future.value();
     }
     _broadcastNotifications(deadline: _deadline);

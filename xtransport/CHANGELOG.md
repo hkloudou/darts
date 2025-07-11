@@ -1,3 +1,10 @@
+## 0.0.7
+* fix event handling logic: remove redundant `onClose` calls during connection failures
+* improve semantic clarity: connection failures now only trigger `onError`, not `onClose`
+* connection failures (never established) vs connection closures (established then lost) now have distinct event handling
+* add comprehensive event handling tests to verify proper behavior
+* applies to TCP, WebSocket IO, and WebSocket HTML implementations
+
 ## 0.0.6
 * fix critical naming conflict: renamed `Error` class to `XTransportError` to avoid collision with Dart's built-in Error class
 * fix TCP client assertion: changed from incorrect `tls://` protocol to correct `tcp://` protocol

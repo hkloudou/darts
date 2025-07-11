@@ -159,7 +159,7 @@ class XTransportWsClient implements ITransportClient {
       if (log) loger.log("connect error: $e", name: "ws");
       status = ConnectStatus.disconnect;
       _onError?.call(XTransportError.from(e));
-      _onClose?.call();
+      // Remove _onClose call here - connection was never established
       return Future.value();
     }
     _socket?.pingInterval = deadline;
