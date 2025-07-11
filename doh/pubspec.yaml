@@ -1,6 +1,6 @@
 name: doh
-description: doh client to resolve dns, include alidns,google dns and cloudflare
-version: 0.0.3+4
+description: A high-performance DNS over HTTPS (DoH) client library with China network optimization, proxy support, smart caching, and failover.
+version: 0.0.4+2
 repository: https://github.com/hkloudou/darts/tree/main/doh
 
 environment:
