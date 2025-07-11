@@ -320,7 +320,7 @@ class MqttClient {
     });
     transport.onMessage((msg) {
       _buf.addAll(msg.message);
-      while(_buf.bytes.length > 0){
+      while(_buf.availableBytes > 0){
         late MqttMessage pack;
         if (lasthead != null) {
           if (_buf.availableBytes < lasthead!.remainingLength) {
