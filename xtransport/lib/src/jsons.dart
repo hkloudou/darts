@@ -19,15 +19,16 @@ class Message {
         message = msg;
       } else if (msg is String) {
         message = base64.decode(msg);
+      } else {
+        message = Uint8List(0);
       }
-      message = (json['message'] as Uint8List?) ?? Uint8List(0);
     }
     remoteInfo = json['remoteInfo'] != null
         ? RemoteInfo.fromJson(json['remoteInfo'])
-        : remoteInfo;
+        : RemoteInfo();
     localInfo = json['localInfo'] != null
         ? LocalInfo.fromJson(json['localInfo'])
-        : localInfo;
+        : LocalInfo();
   }
 
   Map<String, dynamic> toJson() {
@@ -56,10 +57,10 @@ class RemoteInfo {
   });
 
   RemoteInfo.fromJson(Map<String, dynamic> json) {
-    address = json['address'] ?? address;
-    host = json['host'] ?? address;
-    family = json['family'] ?? family;
-    port = json['port'] ?? port;
+    address = json['address'] ?? "";
+    host = json['host'] ?? "";
+    family = json['family'] ?? "";
+    port = json['port'] ?? 0;
     size = json['size'] ?? 0;
   }
 
@@ -82,9 +83,9 @@ class LocalInfo {
   LocalInfo({this.address = "", this.family = "", this.port = 0});
 
   LocalInfo.fromJson(Map<String, dynamic> json) {
-    address = json['address'] ?? address;
-    family = json['family'] ?? family;
-    port = json['port'] ?? port;
+    address = json['address'] ?? "";
+    family = json['family'] ?? "";
+    port = json['port'] ?? 0;
   }
 
   Map<String, dynamic> toJson() {

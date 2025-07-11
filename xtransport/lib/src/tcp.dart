@@ -33,7 +33,7 @@ class XTransportTcpClient implements ITransportClient {
   //Events
   void Function()? _onConnect;
   void Function()? _onClose;
-  void Function(Error err)? _onError;
+  void Function(XTransportError err)? _onError;
   void Function(Message msg)? _onMessage;
 
   //Method
@@ -47,7 +47,7 @@ class XTransportTcpClient implements ITransportClient {
         name: "tcp",
         error: e,
       );
-      // _onError?.call(Error.from(e));
+      // _onError?.call(XTransportError.from(e));
       close();
     }
   }
@@ -72,7 +72,7 @@ class XTransportTcpClient implements ITransportClient {
   void onConnect(void Function() fn) => _onConnect = fn;
 
   @override
-  void onError(void Function(Error err) fn) => _onError = fn;
+  void onError(void Function(XTransportError err) fn) => _onError = fn;
 
   @override
   void onMessage(void Function(Message msg) fn) => _onMessage = fn;
@@ -82,7 +82,7 @@ class XTransportTcpClient implements ITransportClient {
     this._port, {
     this.log = false,
     this.credentials = const XtransportCredentials.insecure(),
-  })  : assert(Uri.parse("tls://$_ip").host == _ip),
+  })  : assert(Uri.parse("tcp://$_ip").host == _ip),
         assert(_port > 0 && _port < 65536);
 
   Future<Socket> getConnectionSocket({Duration? duration}) async {
@@ -157,7 +157,7 @@ class XTransportTcpClient implements ITransportClient {
         name: "tcp",
       );
       status = ConnectStatus.disconnect;
-      _onError?.call(Error.from(e));
+      _onError?.call(XTransportError.from(e));
       _onClose?.call();
       return Future.value();
     }
@@ -198,8 +198,8 @@ class XTransportTcpClient implements ITransportClient {
       onError: (e) {
         loger.log("onError", name: "tcp", error: e);
         status = ConnectStatus.disconnect;
-        _onError?.call(Error.from(e));
-        // _onClose?.call();
+        _onError?.call(XTransportError.from(e));
+        _onClose?.call();
       },
       cancelOnError: true,
     );

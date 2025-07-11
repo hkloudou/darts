@@ -35,7 +35,7 @@ class XTransportWsClient implements ITransportClient {
   //Events
   void Function()? _onConnect;
   void Function()? _onClose;
-  void Function(Error err)? _onError;
+  void Function(XTransportError err)? _onError;
   void Function(Message msg)? _onMessage;
 
   //Method
@@ -71,7 +71,7 @@ class XTransportWsClient implements ITransportClient {
   void onConnect(void Function() fn) => _onConnect = fn;
 
   @override
-  void onError(void Function(Error err) fn) => _onError = fn;
+  void onError(void Function(XTransportError err) fn) => _onError = fn;
 
   @override
   void onMessage(void Function(Message msg) fn) => _onMessage = fn;
@@ -158,7 +158,7 @@ class XTransportWsClient implements ITransportClient {
     } catch (e) {
       if (log) loger.log("connect error: $e", name: "ws");
       status = ConnectStatus.disconnect;
-      _onError?.call(Error.from(e));
+      _onError?.call(XTransportError.from(e));
       _onClose?.call();
       return Future.value();
     }
@@ -190,8 +190,8 @@ class XTransportWsClient implements ITransportClient {
       onError: (e) {
         if (log) loger.log("onError", name: "ws", error: e);
         status = ConnectStatus.disconnect;
-        _onError?.call(Error.from(e));
-        // _onClose?.call();
+        _onError?.call(XTransportError.from(e));
+        _onClose?.call();
       },
       cancelOnError: true,
     );

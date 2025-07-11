@@ -5,12 +5,12 @@ import 'package:xtransport/src/shared/credentials.dart';
 
 // import 'dart:ui';
 
-class Error {
+class XTransportError {
   String errMsg = "";
-  Error.from(dynamic msg) {
+  XTransportError.from(dynamic msg) {
     errMsg = msg.toString();
   }
-  Error.fromString(String msg) {
+  XTransportError.fromString(String msg) {
     errMsg = msg;
   }
 }
@@ -46,7 +46,7 @@ abstract class ITransportClient {
   void onConnect(void Function() fn);
 
   /// onError Event Handler
-  void onError(void Function(Error err) fn);
+  void onError(void Function(XTransportError err) fn);
 
   /// onMessage Event Handler
   void onMessage(void Function(Message msg) fn);
