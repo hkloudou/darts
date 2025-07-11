@@ -77,7 +77,7 @@ class EColor {
         cardColor: cardColor,
         dividerColor: dividerColor,
         scaffoldBackgroundColor: scaffoldBackgroundColor,
-        backgroundColor: backgroundColor,
+        // backgroundColor: backgroundColor,
         iconTheme: IconThemeData(
           color: secondaryText,
           size: 24,

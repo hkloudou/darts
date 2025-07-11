@@ -62,6 +62,11 @@ class MqttBuffer {
   ///
   /// Bits in a byte are labeled 7 through 0. Bit number 7 is the most significant bit, the least significant bit is assigned bit number 0.
   int readBits() {
+    if (_off >= _buf.length) {
+      throw Exception('mqtt_client::ByteBuffer: The buffer did not have '
+          'enough bytes for the read operation. '
+          'Position $_off is beyond buffer length ${_buf.length}');
+    }
     final tmp = _buf[_off];
     _off++;
     return tmp;

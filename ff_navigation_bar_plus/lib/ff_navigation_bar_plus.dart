@@ -40,7 +40,7 @@ class _FFNavigationBarState extends State<FFNavigationBar> {
   Widget build(BuildContext context) {
     final FFNavigationBarTheme theme = widget.theme;
     final bgColor =
-        theme.barBackgroundColor ?? Theme.of(context).bottomAppBarColor;
+        theme.barBackgroundColor ?? Theme.of(context).bottomAppBarTheme.color;
 
     return MultiProvider(
       providers: [

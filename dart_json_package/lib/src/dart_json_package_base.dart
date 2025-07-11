@@ -76,7 +76,7 @@ class HttpJsonPackage<T> {
         json?['MSSSAGE'] as String? ??
         "";
     // 如果是空的话，就返回空就好
-    if (code != 0 || _typeOf<T>().hashCode == _typeOf<void>().hashCode) {
+    if (_typeOf<T>().hashCode == _typeOf<void>().hashCode) {
       return HttpJsonPackage<T>(code, msg, null);
     }
     T? data;
