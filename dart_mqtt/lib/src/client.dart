@@ -395,7 +395,7 @@ class MqttClient {
               obj.topicName.startsWith(key),
             ).firstOrNull;
             if (wildcardKeys != null) {
-              _dataArriveCallBack['${wildcardKeys}#']?.call(obj);
+              _dataArriveCallBack['$wildcardKeys#']?.call(obj);
             } else {
               _dataArriveCallBack[obj.topicName]?.call(obj);
             }
