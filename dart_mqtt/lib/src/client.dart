@@ -19,7 +19,6 @@ class MqttClient {
   bool log = false;
 
   final _buf = MqttBuffer();
-  MqttFixedHead? lasthead;
 
   Timer? _pinger;
 
@@ -308,7 +307,6 @@ class MqttClient {
     //register events
     transport.onConnect(() {
       _buf.clear();
-      lasthead = null;
       _idTopic.clear();
       _finishedSubCache.clear();
       MessageIdentifierDispenser().reset();
@@ -319,50 +317,44 @@ class MqttClient {
       _onConnectClose();
     });
     transport.onMessage((msg) {
+      _buf.rewind();
       _buf.addAll(msg.message);
       while (_buf.availableBytes > 0) {
+        late MqttFixedHead head;
         late MqttMessage pack;
-        if (lasthead != null) {
-          if (_buf.availableBytes < lasthead!.remainingLength) {
-            // continue wait
-            return;
-          }
-          try {
-            _buf.shrink();
-            pack = MqttMessageFactory.readMessage(lasthead!,
-                MqttBuffer.fromList(_buf.read(lasthead!.remainingLength)));
-            lasthead = null;
-          } on Exception catch (e) {
-            lasthead = null;
-            loger.log("\u001b[31m$e\u001b[0m");
-            close(e);
-            return;
-          }
-        } else {
-          // Check if buffer has at least 1 byte for reading the header
-          if (_buf.availableBytes < 1) {
-            return; // Wait for more data
-          }
-          var head = MqttMessageFactory.readHead(_buf);
-          if (_buf.availableBytes < head.remainingLength) {
-            lasthead = head;
-            return;
-          }
-          try {
-            _buf.shrink();
-            pack = MqttMessageFactory.readMessage(
-                head, MqttBuffer.fromList(_buf.read(head.remainingLength)));
-            _buf.shrink();
-          } on Exception catch (e) {
-            loger.log("\u001b[31m$e\u001b[0m");
-            close(e);
-            return;
-          }
+
+        if (_buf.availableBytes < 2) {
+          // continue wait for minimum header length
+          return;
+        }
+
+        try {
+          head = MqttMessageFactory.readHead(_buf);
+        } on Exception catch (e) {
+          // wait for more data
+          // the head is not complete
+          return;
+        }
+
+        if (_buf.availableBytes < head.remainingLength) {
+          // continue wait
+          return;
+        }
+
+        try {
+          pack = MqttMessageFactory.readMessage(
+              head, MqttBuffer.fromList(_buf.read(head.remainingLength)));
+          _buf.shrink();
+        } on Exception catch (e) {
+          loger.log("\u001b[31m$e\u001b[0m");
+          close(e);
+          return;
         }
 
         if (log) {
           loger.log("\u001b[31m↓\u001b[0m ${pack.toString()}", name: "mqtt");
         }
+
         switch (pack.fixedHead.messageType) {
           case MqttMessageType.connack:
             _onMqttConack?.call(pack as MqttMessageConnack);
@@ -387,13 +379,17 @@ class MqttClient {
             break;
           case MqttMessageType.publish:
             var obj = pack as MqttMessagePublish;
-            final wildcardKeys = _dataArriveCallBack.keys.where((key) =>
-              key.split('#').length == 2,
-            ).map((key) =>
-              key.split('#').first,
-            ).where((key) =>
-              obj.topicName.startsWith(key),
-            ).firstOrNull;
+            final wildcardKeys = _dataArriveCallBack.keys
+                .where(
+                  (key) => key.split('#').length == 2,
+                )
+                .map(
+                  (key) => key.split('#').first,
+                )
+                .where(
+                  (key) => obj.topicName.startsWith(key),
+                )
+                .firstOrNull;
             if (wildcardKeys != null) {
               _dataArriveCallBack['$wildcardKeys#']?.call(obj);
             } else {
