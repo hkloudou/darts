@@ -16,6 +16,10 @@ class MqttBuffer {
   /// Available bytes
   int get availableBytes => length - _off;
 
+  void rewind() {
+    _off = 0;
+  }
+
   void addAll(Iterable<int> iterable) {
     _buf.addAll(iterable);
   }
