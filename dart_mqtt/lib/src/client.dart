@@ -351,56 +351,60 @@ class MqttClient {
           return;
         }
 
-        if (log) {
-          loger.log("\u001b[31m↓\u001b[0m ${pack.toString()}", name: "mqtt");
-        }
-
-        switch (pack.fixedHead.messageType) {
-          case MqttMessageType.connack:
-            _onMqttConack?.call(pack as MqttMessageConnack);
-            if (_onMqttConack == null &&
-                (pack as MqttMessageConnack).returnCode !=
-                    MqttConnectReturnCode.connectionAccepted) {
-              // _conn.close();
-              close((pack).returnCode);
-            }
-            break;
-          case MqttMessageType.suback:
-            var obj = pack as MqttMessageSuback;
-            if (_idTopic.containsKey(obj.msgid)) {
-              var _topics = _idTopic[obj.msgid]!;
-              // print("this topic: $_topics");
-              _idTopic.remove(obj.msgid);
-              for (var _topic in _topics) {
-                _finishedSubCache.add(_topic);
-                _subComplate[_topic]?.call();
-              }
-            }
-            break;
-          case MqttMessageType.publish:
-            var obj = pack as MqttMessagePublish;
-            final wildcardKeys = _dataArriveCallBack.keys
-                .where(
-                  (key) => key.split('#').length == 2,
-                )
-                .map(
-                  (key) => key.split('#').first,
-                )
-                .where(
-                  (key) => obj.topicName.startsWith(key),
-                )
-                .firstOrNull;
-            if (wildcardKeys != null) {
-              _dataArriveCallBack['$wildcardKeys#']?.call(obj);
-            } else {
-              _dataArriveCallBack[obj.topicName]?.call(obj);
-            }
-            break;
-          default:
-        }
+        _handleMqttMessage(pack);
       }
     });
     transport.connect(deadline: keepAlive);
+  }
+
+  void _handleMqttMessage(MqttMessage message) {
+    if (log) {
+      loger.log("\u001b[31m↓\u001b[0m ${message.toString()}", name: "mqtt");
+    }
+
+    switch (message.fixedHead.messageType) {
+      case MqttMessageType.connack:
+        var obj = message as MqttMessageConnack;
+        _onMqttConack?.call(obj);
+        if (_onMqttConack == null &&
+            obj.returnCode != MqttConnectReturnCode.connectionAccepted) {
+          // _conn.close();
+          close((message).returnCode);
+        }
+        break;
+      case MqttMessageType.suback:
+        var obj = message as MqttMessageSuback;
+        if (_idTopic.containsKey(obj.msgid)) {
+          var _topics = _idTopic[obj.msgid]!;
+          // print("this topic: $_topics");
+          _idTopic.remove(obj.msgid);
+          for (var _topic in _topics) {
+            _finishedSubCache.add(_topic);
+            _subComplate[_topic]?.call();
+          }
+        }
+        break;
+      case MqttMessageType.publish:
+        var obj = message as MqttMessagePublish;
+        final wildcardKeys = _dataArriveCallBack.keys
+            .where(
+              (key) => key.split('#').length == 2,
+            )
+            .map(
+              (key) => key.split('#').first,
+            )
+            .where(
+              (key) => obj.topicName.startsWith(key),
+            )
+            .firstOrNull;
+        if (wildcardKeys != null) {
+          _dataArriveCallBack['$wildcardKeys#']?.call(obj);
+        } else {
+          _dataArriveCallBack[obj.topicName]?.call(obj);
+        }
+        break;
+      default:
+    }
   }
 
   /// stop this client
