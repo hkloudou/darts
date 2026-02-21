@@ -12,12 +12,9 @@ void main() async {
     ..withKeepalive(10)
     ..withClientID("mqttx_test");
   cli.onMqttConack((msg) {
-    // print("onMqttConack: $msg");
     if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
       cli.close();
-      return;
     }
-    cli.reSub();
   });
 
   cli.onBeforeReconnect(() async {

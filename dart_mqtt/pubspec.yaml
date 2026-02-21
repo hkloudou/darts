@@ -1,6 +1,6 @@
 name: dart_mqtt
 description: a mqtt library to easy connect via tcp/ssl,dependence xtransport,developing,not stable.
-version: 1.0.6
+version: 1.0.7
 repository: https://github.com/hkloudou/darts/tree/main/dart_mqtt
 environment:
   sdk: '>=3.1.5 <4.0.0'

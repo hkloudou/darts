@@ -14,6 +14,10 @@ class MqttMessageConnack extends MqttMessage {
     super.readFrom(messageStream);
     final _ = messageStream.readBits();
     final ret = messageStream.readBits();
+    if (ret >= MqttConnectReturnCode.values.length) {
+      throw Exception(
+          'dart_mqtt: Unknown CONNACK return code: 0x${ret.toRadixString(16)}');
+    }
     returnCode = MqttConnectReturnCode.values[ret];
   }
 

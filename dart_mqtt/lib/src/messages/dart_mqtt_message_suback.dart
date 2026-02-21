@@ -2,7 +2,7 @@ part of '../mqtt.dart';
 
 class MqttMessageSuback extends MqttMessage {
   int msgid = 0;
-  int returnCode = 0;
+  List<int> returnCodes = [];
 
   /// Initializes a new instance of the MqttConnectAckMessage class.
   MqttMessageSuback.fromByteBuffer(
@@ -13,15 +13,18 @@ class MqttMessageSuback extends MqttMessage {
   @override
   void readFrom(MqttBuffer messageStream) {
     msgid = messageStream.readInteger();
-    returnCode = messageStream.readBits();
+    final count = fixedHead.remainingLength - 2;
+    returnCodes = List.generate(count, (_) => messageStream.readBits());
   }
 
   String _code() {
-    if (returnCode <= 2) {
-      return fixedHead.green("✔ MaxQos = " + returnCode.toString());
+    if (returnCodes.isEmpty) return '';
+    final first = returnCodes.first;
+    if (first <= 2) {
+      return fixedHead.green("✔ MaxQos = $first");
     }
     return fixedHead
-        .red("✗ Code =  0x" + returnCode.toRadixString(16).padLeft(2, "0"));
+        .red("✗ Code =  0x${first.toRadixString(16).padLeft(2, "0")}");
   }
 
   @override

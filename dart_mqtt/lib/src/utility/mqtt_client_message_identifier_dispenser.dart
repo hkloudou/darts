@@ -9,14 +9,6 @@ part of "../mqtt.dart";
 
 /// Message identifier handling
 class MessageIdentifierDispenser {
-  /// Factory constructor
-  factory MessageIdentifierDispenser() => _singleton;
-
-  MessageIdentifierDispenser._internal();
-
-  static final MessageIdentifierDispenser _singleton =
-      MessageIdentifierDispenser._internal();
-
   /// Maximum message identifier
   static const int maxMessageIdentifier = 32768;
 

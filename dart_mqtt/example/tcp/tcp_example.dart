@@ -16,9 +16,7 @@ void main() async {
     print("onMqttConack: $msg");
     if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
       cli.close();
-      return;
     }
-    cli.reSub();
   });
 
   cli.onBeforeReconnect(() async {
@@ -31,6 +29,5 @@ void main() async {
     onMessage: (msg) {
       print(msg);
     },
-    futureWaitData: true,
   );
 }

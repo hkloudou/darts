@@ -11,9 +11,9 @@ void main() async {
       // clientCertificateBytes: File('cert/client.pem').readAsBytesSync(),
       // clientPrivateKeyBytes: File('cert/client.key').readAsBytesSync(),
       onBadCertificate: (_x509, _host) {
-        print("onBadCertificate x509.subject: ${_x509.subject}}");
-        print("onBadCertificate x509.issuer: ${_x509.issuer}}");
-        print("onBadCertificate x509.pem: ${_x509.pem}}");
+        print("onBadCertificate x509.subject: ${_x509.subject}");
+        print("onBadCertificate x509.issuer: ${_x509.issuer}");
+        print("onBadCertificate x509.pem: ${_x509.pem}");
         print("onBadCertificate host: $_host");
         return true;
       },
@@ -25,9 +25,7 @@ void main() async {
   cli.onMqttConack((msg) {
     if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
       cli.close();
-      return;
     }
-    cli.reSub();
   });
 
   cli.onBeforeReconnect(() async {

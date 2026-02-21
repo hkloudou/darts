@@ -20,3 +20,5 @@ part 'messages/dart_mqtt_message_subscribe.dart';
 part 'messages/dart_mqtt_message_unsubscribe.dart';
 part 'messages/dart_mqtt_message_unsuback.dart';
 part 'messages/dart_mqtt_message_publish.dart';
+part 'messages/dart_mqtt_message_puback.dart';
+part 'messages/dart_mqtt_message_disconnect.dart';

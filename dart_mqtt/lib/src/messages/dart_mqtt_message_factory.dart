@@ -1,7 +1,6 @@
 part of '../mqtt.dart';
 
 class MqttMessageFactory {
-  // TODO: add publishack support[qos 1]
   /// Gets an instance of an MqttMessage based on the message type requested.
   static MqttMessage getMessage(
       MqttFixedHead header, MqttBuffer messageStream) {
@@ -14,11 +13,14 @@ class MqttMessageFactory {
         return MqttMessageSuback.fromByteBuffer(header, messageStream);
       case MqttMessageType.publish:
         return MqttMessagePublish.fromByteBuffer(header, messageStream);
+      case MqttMessageType.puback:
+        return MqttMessagePuback.fromByteBuffer(header, messageStream);
       case MqttMessageType.unsuback:
         return MqttMessageUnSuback.fromByteBuffer(header, messageStream);
       default:
     }
-    throw Exception('Unsupported message type: ${header.messageType.name} (${header.toString()})');
+    throw Exception(
+        'Unsupported message type: ${header.messageType.name} (${header.toString()})');
   }
 
   static MqttFixedHead readHead(MqttBuffer messageStream) {

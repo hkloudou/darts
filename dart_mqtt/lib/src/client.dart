@@ -10,7 +10,6 @@ typedef EvtMqttPublishArrived = void Function(MqttMessagePublish msg);
 
 /// Mqtt client instance
 class MqttClient {
-  static MqttClient? instance;
   ITransportClient transport;
   bool _started = false;
   bool _paused = false;
@@ -22,49 +21,50 @@ class MqttClient {
 
   Timer? _pinger;
 
-  /// allow Reconnect when
+  /// Allow reconnect on disconnect
   bool allowReconnect;
 
-  /// delay before reconnect
+  /// Delay before reconnect attempt
   Duration reconnectWait;
 
   Duration? keepAlive;
 
   MqttMessageConnect get connectPacket => _connectPacket;
 
-  /// custom reconnect delay
+  /// Custom reconnect delay callback
   Duration Function()? customReconnectDelayCB;
   final MqttMessageConnect _connectPacket = MqttMessageConnect();
   final _idTopic = <int, List<String>>{};
   final _subList = <String, MqttMessageSubscribe>{};
-  final _subComplate = <String, void Function()>{};
-  final _finishedSubCache = <String>{};
+  final _subComplete = <String, void Function()>{};
   final _dataArriveCallBack = <String, EvtMqttPublishArrived>{};
-  //Events
+  final _midDispenser = MessageIdentifierDispenser();
+
+  // Events
   void Function(MqttMessageConnack msg)? _onMqttConack;
   Future<void> Function()? _onBeforeReconnect;
   Future<void> Function()? _onClose;
 
-  /// set ConnectPacket ping keepaliveSecond
+  /// Set keepalive interval in seconds
   MqttClient withKeepalive(int seconds) {
     keepAlive = Duration(seconds: seconds);
     _connectPacket.withKeepalive(seconds);
     return this;
   }
 
-  /// set ConnectPacket UserName and pwd
+  /// Set authentication credentials
   MqttClient withAuth(String userName, String pwd) {
     _connectPacket.withAuth(userName, pwd);
     return this;
   }
 
-  /// set ConnectPacket clientID
+  /// Set client ID
   MqttClient withClientID(String clientID) {
     _connectPacket.withClientID(clientID);
     return this;
   }
 
-  /// set ConnectPacket clearSession default:true
+  /// Set clean session flag (default: true)
   MqttClient withClearSession(bool clear) {
     _connectPacket.cleanStart = clear;
     return this;
@@ -87,70 +87,55 @@ class MqttClient {
     msg.fixedHead.retain = retain;
     msg.fixedHead.qos = qos;
     msg.fixedHead.dup = dup;
+    if (qos != MqttQos.qos0) {
+      msg.msgid = _midDispenser.getNextMessageIdentifier();
+    }
     msg.toTopic(topic);
     msg.data = payload ?? Uint8List(0);
     _send(msg);
     return Future.value();
   }
 
+  /// Subscribe to a topic. Returns a Future that completes when SUBACK is
+  /// received (or when [timeout] expires with an error).
   Future<void> subscribe(
     String topic, {
-    bool force = true,
     EvtMqttPublishArrived? onMessage,
-    bool futureWaitData = false,
-    // mqtt head
     bool retain = false,
     MqttQos qos = MqttQos.qos0,
     bool dup = false,
     Duration? timeout,
   }) {
-    var com = Completer<void>();
-    Timer? _timeout;
+    final com = Completer<void>();
+    Timer? timer;
     if (timeout != null) {
-      _timeout = Timer.periodic(timeout, (timer) {
-        timer.cancel();
+      timer = Timer(timeout, () {
         if (!com.isCompleted) {
-          com.completeError("subcribe timeout");
+          com.completeError("subscribe timeout");
         }
       });
     }
+
     if (onMessage != null) {
       _dataArriveCallBack[topic] = onMessage;
     }
-    // handle the events
-    _dataArriveCallBack[topic] = (msg) {
-      onMessage?.call(msg);
-      //futureWaitData
-      if (futureWaitData && !com.isCompleted) {
-        _timeout?.cancel();
-        com.complete();
-      }
-    };
 
-    if (!force && _finishedSubCache.contains(topic)) {
-      if (log) print("mqtt can't resub $topic when force=false");
-
-      return futureWaitData ? com.future : Future.value();
-    }
-    var id = MessageIdentifierDispenser().getNextMessageIdentifier();
-    // print("id $id");
+    var id = _midDispenser.getNextMessageIdentifier();
     _idTopic[id] = [topic];
 
     var msg = MqttMessageSubscribe.withTopic(id, topic, qos);
-
     msg.fixedHead.retain = retain;
     msg.fixedHead.dup = dup;
     _subList[topic] = msg;
-    // handle future when suback
-    if (!futureWaitData) {
-      _subComplate[topic] = () {
-        if (!com.isCompleted) {
-          _timeout?.cancel();
-          com.complete();
-          _subComplate.remove(topic);
-        }
-      };
-    }
+
+    _subComplete[topic] = () {
+      if (!com.isCompleted) {
+        timer?.cancel();
+        com.complete();
+        _subComplete.remove(topic);
+      }
+    };
+
     _send(msg);
     return com.future;
   }
@@ -158,17 +143,14 @@ class MqttClient {
   Future<void> unSubscribe(String topic) async {
     _subList.remove(topic);
     _dataArriveCallBack.remove(topic);
-    _finishedSubCache.remove(topic);
     var msg = MqttMessageUnSubscribe.withTopic([topic]);
-    msg.withMessageID(MessageIdentifierDispenser().getNextMessageIdentifier());
+    msg.withMessageID(_midDispenser.getNextMessageIdentifier());
     _send(msg);
-    return;
   }
 
-  /// internal function
+  /// Internal constructor
   MqttClient._(
     this.transport, {
-    // required this.credentials,
     required this.log,
     required this.allowReconnect,
     required this.reconnectWait,
@@ -177,63 +159,60 @@ class MqttClient {
 
   MqttClient(
     ITransportClient client, {
-    // XtransportCredentials credentials = const XtransportCredentials.insecure(),
     bool log = false,
-    // reconnect attributes
     bool allowReconnect = false,
     Duration reconnectWait = const Duration(seconds: 2),
     Duration Function()? customReconnectDelayCB,
   }) : this._(
           client,
-          // credentials: credentials,
           allowReconnect: allowReconnect,
           reconnectWait: reconnectWait,
           customReconnectDelayCB: customReconnectDelayCB,
           log: log,
         );
 
-  /// pause (ex: when app in backgroud mode)
+  /// Pause the client (e.g. when app enters background)
   void pause() {
     _paused = true;
     close("pause");
   }
 
-  /// resume (ex:when app resume to fourcegroud mode)
+  /// Resume the client (e.g. when app enters foreground)
   void resume() {
     _paused = false;
   }
 
   bool get paused => _paused;
 
-  /// close the connect
-  void close([dynamic reson = "no reson"]) {
-    // print("reson: $reson");
+  /// Close the connection (sends DISCONNECT first if connected)
+  void close([dynamic reason = "no reason"]) {
+    _pinger?.cancel();
+    if (transport.status == ConnectStatus.connected) {
+      _send(MqttMessageDisconnect());
+    }
     transport.close();
   }
 
-  /// eliminate functionality
+  /// Dispose the client permanently
   void dispose() {
-    _disposed = true; // to stop recursive calls of `_resetTimePeriodic()`
+    _disposed = true;
     stop();
   }
 
   void _onConnectClose() {
-    if (_stopped) return; //return if stopped
+    _pinger?.cancel();
+    if (_stopped) return;
 
     if (_paused) {
-      //check 1 second later if paused
-      Future.delayed(Duration(seconds: 1)).then((_) => _onConnectClose());
+      Future.delayed(const Duration(seconds: 1)).then((_) => _onConnectClose());
       return;
     }
     _onClose?.call();
-    // if reconnectDuration not null, reconnect
     if (allowReconnect) {
       Future.delayed(customReconnectDelayCB?.call() ?? reconnectWait).then((_) {
-        // _onBeforeReconnect?.call().th;
+        if (_stopped || _disposed) return;
         if (_onBeforeReconnect != null) {
-          return _onBeforeReconnect
-              ?.call()
-              .then((value) => transport.connect());
+          _onBeforeReconnect?.call().then((value) => transport.connect());
         } else {
           transport.connect();
         }
@@ -242,16 +221,12 @@ class MqttClient {
   }
 
   void _resetTimePeriodic() {
-    if (_disposed) return; // to stop recursive calls of `_resetTimePeriodic()`
-
-    if (transport.status != ConnectStatus.connected) {
-      loger.log("_resetTimePeriodic: ${transport.status}");
-    }
-    var _seconds = _connectPacket.getKeepalive();
-    // _seconds = (_seconds * 0.5).toInt();
+    if (_disposed || _stopped) return;
+    if (transport.status != ConnectStatus.connected) return;
+    var seconds = _connectPacket.getKeepalive();
     _pinger?.cancel();
-    if (_seconds > 0) {
-      _pinger = Timer(Duration(seconds: _seconds), () {
+    if (seconds > 0) {
+      _pinger = Timer(Duration(seconds: seconds), () {
         _send(MqttMessagePingreq());
         _resetTimePeriodic();
       });
@@ -259,57 +234,42 @@ class MqttClient {
   }
 
   void _send(ITransportPacket obj) {
-    // if (log) print("mqtt:ready send\n$obj");
-
     if (_stopped) return;
     if (_paused) return;
     if (transport.status != ConnectStatus.connected) {
-      loger.log("_conn.status != ConnectStatus.connected: ${transport.status}");
-      // developer.log(obj.toString());
+      loger.log("_send: not connected (${transport.status})");
       return;
     }
-    // if (obj.)
-    // _resetTimePeriodic();
-    // print("send");
     transport.send(obj);
-// log(message);
-
     if (log) {
-      // Console.setTextColor(2);
-      // Console.write("xx");
-      // print(r'\e[1;31mRed text here\e[m normal text here');
-      //\u001b[39;2m${DateTime.now().toString().substring(5)}\u001b[0m
-      loger.log(
-        "\u001b[32m↑\u001b[0m $obj",
-        name: "mqtt",
-      );
+      loger.log("\u001b[32m↑\u001b[0m $obj", name: "mqtt");
     }
   }
 
+  /// Re-subscribe all previously subscribed topics (call after reconnect)
   void reSub() {
     if (log) {
       loger.log("resub topics: ${_subList.keys.toList()}", name: "mqtt");
     }
     _subList.forEach((key, value) {
-      var id = MessageIdentifierDispenser().getNextMessageIdentifier();
+      var id = _midDispenser.getNextMessageIdentifier();
       _idTopic[id] = _subList[key]!.topics;
       _subList[key]!.withMessageID(id);
-      // log(message)
       _send(_subList[key]!);
     });
   }
 
-  /// start connect
+  /// Start the client connection
   void start() {
     if (_stopped) return;
-    if (_started) return; //once function
+    if (_started) return;
     _started = true;
-    //register events
+
     transport.onConnect(() {
       _buf.clear();
       _idTopic.clear();
-      _finishedSubCache.clear();
-      MessageIdentifierDispenser().reset();
+      _subComplete.clear();
+      _midDispenser.reset();
       _resetTimePeriodic();
       _send(_connectPacket);
     });
@@ -324,20 +284,22 @@ class MqttClient {
         late MqttMessage pack;
 
         if (_buf.availableBytes < 2) {
-          // continue wait for minimum header length
           return;
         }
 
         try {
           head = MqttMessageFactory.readHead(_buf);
         } on Exception catch (e) {
-          // wait for more data
-          // the head is not complete
+          if (e.toString().contains('Unexpected end of buffer')) {
+            return; // Incomplete header, wait for more data
+          }
+          // Malformed packet, close connection
+          loger.log("\u001b[31m$e\u001b[0m");
+          close(e);
           return;
         }
 
         if (_buf.availableBytes < head.remainingLength) {
-          // continue wait
           return;
         }
 
@@ -364,50 +326,59 @@ class MqttClient {
 
     switch (message.fixedHead.messageType) {
       case MqttMessageType.connack:
-        var obj = message as MqttMessageConnack;
-        _onMqttConack?.call(obj);
-        if (_onMqttConack == null &&
-            obj.returnCode != MqttConnectReturnCode.connectionAccepted) {
-          // _conn.close();
-          close((message).returnCode);
+        final connack = message as MqttMessageConnack;
+        _onMqttConack?.call(connack);
+        if (connack.returnCode == MqttConnectReturnCode.connectionAccepted) {
+          reSub();
+        } else if (_onMqttConack == null) {
+          close(connack.returnCode);
         }
         break;
       case MqttMessageType.suback:
         var obj = message as MqttMessageSuback;
         if (_idTopic.containsKey(obj.msgid)) {
-          var _topics = _idTopic[obj.msgid]!;
-          // print("this topic: $_topics");
+          var topics = _idTopic[obj.msgid]!;
           _idTopic.remove(obj.msgid);
-          for (var _topic in _topics) {
-            _finishedSubCache.add(_topic);
-            _subComplate[_topic]?.call();
+          for (var topic in topics) {
+            _subComplete[topic]?.call();
           }
         }
         break;
       case MqttMessageType.publish:
         var obj = message as MqttMessagePublish;
-        final wildcardKeys = _dataArriveCallBack.keys
-            .where(
-              (key) => key.split('#').length == 2,
-            )
-            .map(
-              (key) => key.split('#').first,
-            )
-            .where(
-              (key) => obj.topicName.startsWith(key),
-            )
-            .firstOrNull;
-        if (wildcardKeys != null) {
-          _dataArriveCallBack['$wildcardKeys#']?.call(obj);
-        } else {
+        if (_dataArriveCallBack.containsKey(obj.topicName)) {
           _dataArriveCallBack[obj.topicName]?.call(obj);
+        } else {
+          final matchedKey = _dataArriveCallBack.keys
+              .where((key) => _topicMatch(key, obj.topicName))
+              .firstOrNull;
+          if (matchedKey != null) {
+            _dataArriveCallBack[matchedKey]?.call(obj);
+          }
         }
         break;
       default:
     }
   }
 
-  /// stop this client
+  /// MQTT topic matching per spec section 4.7
+  static bool _topicMatch(String filter, String topic) {
+    if (filter == topic) return true;
+    final filterParts = filter.split('/');
+    final topicParts = topic.split('/');
+    for (var i = 0; i < filterParts.length; i++) {
+      if (filterParts[i] == '#') {
+        return true;
+      }
+      if (i >= topicParts.length) return false;
+      if (filterParts[i] != '+' && filterParts[i] != topicParts[i]) {
+        return false;
+      }
+    }
+    return filterParts.length == topicParts.length;
+  }
+
+  /// Stop the client
   void stop() {
     _stopped = true;
     pause();

@@ -29,23 +29,23 @@ class MqttFixedHead {
 
   Uint8List _readLengthBytes(MqttBuffer buf) {
     final lengthBytes = <int>[];
-    // Read until we've got the entire size, or the 4 byte limit is reached
     int sizeByte;
     var byteCount = 0;
     do {
-      // Safety check: prevent infinite loop with malformed data
       if (buf.availableBytes == 0) {
-        throw Exception('Unexpected end of buffer while reading remaining length');
+        throw Exception(
+            'dart_mqtt: Unexpected end of buffer while reading remaining length');
       }
       sizeByte = buf.readBits();
       lengthBytes.add(sizeByte);
-    } while (++byteCount <= 4 && (sizeByte & 0x80) == 0x80);
-    
-    // Additional safety: check if we exceeded the 4-byte limit
-    if (byteCount > 4) {
-      throw Exception('Invalid remaining length encoding: exceeds 4 bytes');
+      byteCount++;
+    } while (byteCount < 4 && (sizeByte & 0x80) == 0x80);
+
+    if ((sizeByte & 0x80) == 0x80) {
+      throw Exception(
+          'dart_mqtt: Invalid remaining length encoding: exceeds 4 bytes');
     }
-    
+
     return Uint8List.fromList(lengthBytes);
   }
 
