@@ -1,3 +1,10 @@
+## 1.0.8
+
+### Bug Fixes
+- Fixed pinger timer not cancelled on connection drop, causing repeated send attempts during reconnect
+- Fixed `_resetTimePeriodic` creating timers when not connected
+- Fixed `readHead` silently swallowing malformed packet errors instead of closing connection
+
 ## 1.0.7
 
 ### Bug Fixes
