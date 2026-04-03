@@ -39,11 +39,12 @@ class XTransportTcpClient implements ITransportClient {
   //Method
   @override
   void send(ITransportPacket obj) {
+    // loger.log("send: socket=${_socket != null}, status=$status", name: "tcp");
     try {
       _socket?.add(obj.pack());
     } catch (e) {
       loger.log(
-        "send data",
+        "send data error: $e",
         name: "tcp",
         error: e,
       );
@@ -61,7 +62,13 @@ class XTransportTcpClient implements ITransportClient {
       time: DateTime.now(),
       name: "tcp",
     );
-    _socket?.destroy();
+    // loger.log("close: socket=${_socket != null}, status=$status", name: "tcp");
+    // try {
+    //   _socket?.destroy();
+    // } catch (e) {
+    //   loger.log("close: destroy error: $e", name: "tcp");
+    // }
+    // loger.log("close: done", name: "tcp");
   }
 
   // Events
@@ -149,6 +156,9 @@ class XTransportTcpClient implements ITransportClient {
         port: _socket?.port ?? 0,
       );
       status = ConnectStatus.connected;
+      // Catch async write-side errors (IOSink.done).
+      // Read-side errors are handled by stream onError.
+      _socket?.done.catchError((_) {});
       _onConnect?.call();
     } catch (e) {
       loger.log(
@@ -196,10 +206,13 @@ class XTransportTcpClient implements ITransportClient {
         _onClose?.call();
       },
       onError: (e) {
-        loger.log("onError", name: "tcp", error: e);
+        // loger.log("onError: $e", name: "tcp", error: e);
+        // loger.log("onError: setting disconnect, calling _onClose", name: "tcp");
         status = ConnectStatus.disconnect;
         _onError?.call(XTransportError.from(e));
+        // loger.log("onError: before _onClose", name: "tcp");
         _onClose?.call();
+        // loger.log("onError: after _onClose", name: "tcp");
       },
       cancelOnError: true,
     );

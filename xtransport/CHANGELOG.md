@@ -1,3 +1,8 @@
+## 0.0.9
+* fix TCP send error logging: include actual error details in log message
+* fix TCP close: avoid potential errors from `socket.destroy()` during close
+* fix TCP connect: catch async write-side errors via `socket.done.catchError` to prevent unhandled exceptions
+
 ## 0.0.7
 * fix event handling logic: remove redundant `onClose` calls during connection failures
 * improve semantic clarity: connection failures now only trigger `onError`, not `onClose`
