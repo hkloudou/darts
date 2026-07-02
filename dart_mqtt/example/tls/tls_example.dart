@@ -10,11 +10,11 @@ void main() async {
       // certificates: File('cert/ca.pem').readAsBytesSync(),
       // clientCertificateBytes: File('cert/client.pem').readAsBytesSync(),
       // clientPrivateKeyBytes: File('cert/client.key').readAsBytesSync(),
-      onBadCertificate: (_x509, _host) {
-        print("onBadCertificate x509.subject: ${_x509.subject}");
-        print("onBadCertificate x509.issuer: ${_x509.issuer}");
-        print("onBadCertificate x509.pem: ${_x509.pem}");
-        print("onBadCertificate host: $_host");
+      onBadCertificate: (x509, host) {
+        print("onBadCertificate x509.subject: ${x509.subject}");
+        print("onBadCertificate x509.issuer: ${x509.issuer}");
+        print("onBadCertificate x509.pem: ${x509.pem}");
+        print("onBadCertificate host: $host");
         return true;
       },
     ),

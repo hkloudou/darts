@@ -1204,8 +1204,9 @@ void main() {
         final received = Completer<MqttMessagePublish>();
 
         reconnectClient.onMqttConack((msg) {
-          if (msg.returnCode != MqttConnectReturnCode.connectionAccepted)
+          if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
             return;
+          }
           connackCount++;
           if (connackCount == 1) {
             if (!firstConnect.isCompleted) firstConnect.complete();
@@ -1266,8 +1267,9 @@ void main() {
           }
         });
         reconnectClient.onMqttConack((msg) {
-          if (msg.returnCode != MqttConnectReturnCode.connectionAccepted)
+          if (msg.returnCode != MqttConnectReturnCode.connectionAccepted) {
             return;
+          }
           connackCount++;
           if (connackCount == 1 && !firstConnect.isCompleted) {
             firstConnect.complete();

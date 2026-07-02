@@ -33,29 +33,28 @@ class MqttMessageSubscribe extends MqttMessage {
   void writeTo(MqttBuffer messageStream) {
     fixedHead.messageType = MqttMessageType.subscribe;
     fixedHead.qos = MqttQos.qos1;
-    MqttBuffer _variableHeader = MqttBuffer();
-    _variableHeader.writeInteger(_messageID);
+    MqttBuffer variableHeader = MqttBuffer();
+    variableHeader.writeInteger(_messageID);
     for (var i = 0; i < _topics.length; i++) {
-      _variableHeader.writeUtf8String(_topics[i]);
-      _variableHeader.writeBits(_qoss[i].index);
+      variableHeader.writeUtf8String(_topics[i]);
+      variableHeader.writeBits(_qoss[i].index);
     }
-    fixedHead.remainingLength = _variableHeader.length;
+    fixedHead.remainingLength = variableHeader.length;
     messageStream.addAll(fixedHead.headerBytes());
-    messageStream.addAll(_variableHeader.bytes);
+    messageStream.addBuffer(variableHeader);
   }
 
   @override
   String toString() {
-    var str = fixedHead.toString();
-    str = str +
-        "\x1b[39mId \x1b[0m" +
-        fixedHead.blue(_messageID.toString().padRight(6));
+    final str = StringBuffer(fixedHead.toString())
+      ..write("\x1b[39mId \x1b[0m")
+      ..write(fixedHead.blue(_messageID.toString().padRight(6)));
     for (var i = 0; i < _qoss.length; i++) {
-      str = str +
-          fixedHead.yellow(_topics[i]) +
-          "\x1b[39;2m(Qos:${_qoss[i].index.toString()})\x1b[0m  ";
+      str
+        ..write(fixedHead.yellow(_topics[i]))
+        ..write("\x1b[39;2m(Qos:${_qoss[i].index})\x1b[0m  ");
     }
-    return str;
+    return str.toString();
     //  +
     // // _topics.map((e) => e)
     // // _topics.where((element) => false)

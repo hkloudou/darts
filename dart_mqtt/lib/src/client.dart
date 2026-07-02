@@ -38,7 +38,9 @@ class MqttClient {
   final _subList = <String, MqttMessageSubscribe>{};
   final _subComplete = <String, void Function()>{};
   final _dataArriveCallBack = <String, EvtMqttPublishArrived>{};
+  final _pendingPubacks = <int, Completer<void>>{};
   final _midDispenser = MessageIdentifierDispenser();
+  bool _closeHandled = false;
 
   // Events
   void Function(MqttMessageConnack msg)? _onMqttConack;
@@ -76,6 +78,11 @@ class MqttClient {
   void onMqttConack(void Function(MqttMessageConnack msg)? fn) =>
       _onMqttConack = fn;
 
+  /// Publish a message to [topic].
+  ///
+  /// For QoS 1 and above the returned future completes when the broker
+  /// acknowledges the message with PUBACK, or when the connection drops
+  /// before the acknowledgment arrives.
   Future<void> publish(
     String topic, {
     bool retain = false,
@@ -87,11 +94,19 @@ class MqttClient {
     msg.fixedHead.retain = retain;
     msg.fixedHead.qos = qos;
     msg.fixedHead.dup = dup;
-    if (qos != MqttQos.qos0) {
-      msg.msgid = _midDispenser.getNextMessageIdentifier();
-    }
     msg.toTopic(topic);
     msg.data = payload ?? Uint8List(0);
+    if (qos != MqttQos.qos0) {
+      msg.msgid = _midDispenser.getNextMessageIdentifier();
+      if (!_stopped && !_paused && transport.status == ConnectStatus.connected) {
+        final com = Completer<void>();
+        _pendingPubacks[msg.msgid] = com;
+        _send(msg);
+        return com.future;
+      }
+      // _send() drops the packet in these states; complete immediately
+      // rather than returning a future that can never finish.
+    }
     _send(msg);
     return Future.value();
   }
@@ -108,13 +123,6 @@ class MqttClient {
   }) {
     final com = Completer<void>();
     Timer? timer;
-    if (timeout != null) {
-      timer = Timer(timeout, () {
-        if (!com.isCompleted) {
-          com.completeError("subscribe timeout");
-        }
-      });
-    }
 
     if (onMessage != null) {
       _dataArriveCallBack[topic] = onMessage;
@@ -128,11 +136,22 @@ class MqttClient {
     msg.fixedHead.dup = dup;
     _subList[topic] = msg;
 
+    if (timeout != null) {
+      timer = Timer(timeout, () {
+        if (!com.isCompleted) {
+          _subComplete.remove(topic);
+          _idTopic.remove(id);
+          com.completeError(TimeoutException(
+              'dart_mqtt: subscribe timeout: $topic', timeout));
+        }
+      });
+    }
+
     _subComplete[topic] = () {
+      _subComplete.remove(topic);
+      timer?.cancel();
       if (!com.isCompleted) {
-        timer?.cancel();
         com.complete();
-        _subComplete.remove(topic);
       }
     };
 
@@ -188,7 +207,18 @@ class MqttClient {
   void close([dynamic reason = "no reason"]) {
     _pinger?.cancel();
     if (transport.status == ConnectStatus.connected) {
-      _send(MqttMessageDisconnect());
+      // Send DISCONNECT directly: _send() would silently drop it when the
+      // client is already flagged paused/stopped — precisely the states
+      // that trigger a graceful shutdown.
+      final msg = MqttMessageDisconnect();
+      try {
+        transport.send(msg);
+        if (log) {
+          loger.log("\u001b[32m↑\u001b[0m $msg", name: "mqtt");
+        }
+      } catch (_) {
+        // The socket may already be broken; proceed with the close.
+      }
     }
     transport.close();
   }
@@ -201,22 +231,39 @@ class MqttClient {
 
   void _onConnectClose() {
     _pinger?.cancel();
+    _releasePendingPubacks();
     if (_stopped) return;
 
     if (_paused) {
       Future.delayed(const Duration(seconds: 1)).then((_) => _onConnectClose());
       return;
     }
+    // The transport can report a single disconnect through both onError and
+    // onClose; handle it once per connection.
+    if (_closeHandled) return;
+    _closeHandled = true;
     _onClose?.call();
     if (allowReconnect) {
       Future.delayed(customReconnectDelayCB?.call() ?? reconnectWait).then((_) {
         if (_stopped || _disposed) return;
+        _closeHandled = false;
         if (_onBeforeReconnect != null) {
           _onBeforeReconnect?.call().then((value) => transport.connect());
         } else {
           transport.connect();
         }
       });
+    }
+  }
+
+  void _releasePendingPubacks() {
+    if (_pendingPubacks.isEmpty) return;
+    final pending = _pendingPubacks.values.toList();
+    _pendingPubacks.clear();
+    for (final com in pending) {
+      if (!com.isCompleted) {
+        com.complete();
+      }
     }
   }
 
@@ -249,13 +296,13 @@ class MqttClient {
   /// Re-subscribe all previously subscribed topics (call after reconnect)
   void reSub() {
     if (log) {
-      loger.log("resub topics: ${_subList.keys.toList()}", name: "mqtt");
+      loger.log("resub topics: ${_subList.keys.join(', ')}", name: "mqtt");
     }
     _subList.forEach((key, value) {
       var id = _midDispenser.getNextMessageIdentifier();
-      _idTopic[id] = _subList[key]!.topics;
-      _subList[key]!.withMessageID(id);
-      _send(_subList[key]!);
+      _idTopic[id] = value.topics;
+      value.withMessageID(id);
+      _send(value);
     });
   }
 
@@ -266,9 +313,9 @@ class MqttClient {
     _started = true;
 
     transport.onConnect(() {
+      _closeHandled = false;
       _buf.clear();
       _idTopic.clear();
-      _subComplete.clear();
       _midDispenser.reset();
       _resetTimePeriodic();
       _send(_connectPacket);
@@ -276,22 +323,32 @@ class MqttClient {
     transport.onClose(() {
       _onConnectClose();
     });
+    transport.onError((err) {
+      // A failed connect attempt reports only onError (never onClose);
+      // without this handler a single failed reconnect ends the retry loop.
+      if (log) {
+        loger.log("\u001b[31mtransport error: ${err.errMsg}\u001b[0m",
+            name: "mqtt");
+      }
+      _onConnectClose();
+    });
     transport.onMessage((msg) {
       _buf.rewind();
       _buf.addAll(msg.message);
-      while (_buf.availableBytes > 0) {
-        late MqttFixedHead head;
-        late MqttMessage pack;
-
-        if (_buf.availableBytes < 2) {
-          return;
-        }
+      while (_buf.availableBytes >= 2) {
+        final packetStart = _buf.offset;
+        MqttFixedHead head;
+        MqttMessage pack;
 
         try {
           head = MqttMessageFactory.readHead(_buf);
+        } on MqttIncompleteMessageException {
+          _buf.seek(packetStart);
+          break; // Incomplete header, wait for more data
         } on Exception catch (e) {
           if (e.toString().contains('Unexpected end of buffer')) {
-            return; // Incomplete header, wait for more data
+            _buf.seek(packetStart);
+            break; // Incomplete header, wait for more data
           }
           // Malformed packet, close connection
           loger.log("\u001b[31m$e\u001b[0m");
@@ -300,21 +357,32 @@ class MqttClient {
         }
 
         if (_buf.availableBytes < head.remainingLength) {
-          return;
+          _buf.seek(packetStart);
+          break; // Incomplete body, wait for more data
         }
 
         try {
           pack = MqttMessageFactory.readMessage(
               head, MqttBuffer.fromList(_buf.read(head.remainingLength)));
-          _buf.shrink();
         } on Exception catch (e) {
           loger.log("\u001b[31m$e\u001b[0m");
           close(e);
           return;
         }
 
-        _handleMqttMessage(pack);
+        try {
+          _handleMqttMessage(pack);
+        } catch (e) {
+          // A throwing user callback must not kill the connection or stall
+          // the packets already buffered behind this one.
+          loger.log(
+              "\u001b[31mdart_mqtt: message handler threw: $e\u001b[0m",
+              name: "mqtt");
+        }
       }
+      // Consume all fully parsed packets in one pass; a trailing partial
+      // packet (cursor moved back above) stays for the next data event.
+      _buf.shrink();
     });
     transport.connect(deadline: keepAlive);
   }
@@ -336,24 +404,32 @@ class MqttClient {
         break;
       case MqttMessageType.suback:
         var obj = message as MqttMessageSuback;
-        if (_idTopic.containsKey(obj.msgid)) {
-          var topics = _idTopic[obj.msgid]!;
-          _idTopic.remove(obj.msgid);
+        final topics = _idTopic.remove(obj.msgid);
+        if (topics != null) {
           for (var topic in topics) {
             _subComplete[topic]?.call();
           }
         }
         break;
+      case MqttMessageType.puback:
+        final obj = message as MqttMessagePuback;
+        final com = _pendingPubacks.remove(obj.msgid);
+        if (com != null && !com.isCompleted) {
+          com.complete();
+        }
+        break;
       case MqttMessageType.publish:
         var obj = message as MqttMessagePublish;
-        if (_dataArriveCallBack.containsKey(obj.topicName)) {
-          _dataArriveCallBack[obj.topicName]?.call(obj);
+        final exact = _dataArriveCallBack[obj.topicName];
+        if (exact != null) {
+          exact(obj);
         } else {
-          final matchedKey = _dataArriveCallBack.keys
-              .where((key) => _topicMatch(key, obj.topicName))
-              .firstOrNull;
-          if (matchedKey != null) {
-            _dataArriveCallBack[matchedKey]?.call(obj);
+          final topicParts = obj.topicName.split('/');
+          for (final entry in _dataArriveCallBack.entries) {
+            if (_topicMatch(entry.key, topicParts)) {
+              entry.value(obj);
+              break;
+            }
           }
         }
         break;
@@ -361,11 +437,10 @@ class MqttClient {
     }
   }
 
-  /// MQTT topic matching per spec section 4.7
-  static bool _topicMatch(String filter, String topic) {
-    if (filter == topic) return true;
+  /// MQTT topic matching per spec section 4.7; [topicParts] is the topic
+  /// name pre-split on '/' so a burst of filters shares one split.
+  static bool _topicMatch(String filter, List<String> topicParts) {
     final filterParts = filter.split('/');
-    final topicParts = topic.split('/');
     for (var i = 0; i < filterParts.length; i++) {
       if (filterParts[i] == '#') {
         return true;

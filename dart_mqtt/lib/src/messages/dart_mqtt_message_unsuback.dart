@@ -16,7 +16,5 @@ class MqttMessageUnSuback extends MqttMessage {
 
   @override
   String toString() =>
-      fixedHead.toString() +
-      "id: " +
-      fixedHead.green(msgid.toString().padRight(6));
+      "${fixedHead}id: ${fixedHead.green(msgid.toString().padRight(6))}";
 }

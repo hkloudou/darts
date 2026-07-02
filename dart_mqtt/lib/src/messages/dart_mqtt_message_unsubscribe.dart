@@ -30,21 +30,17 @@ class MqttMessageUnSubscribe extends MqttMessage {
   void writeTo(MqttBuffer messageStream) {
     fixedHead.qos = MqttQos.qos1;
     fixedHead.messageType = MqttMessageType.unsubscribe;
-    MqttBuffer _variableHeader = MqttBuffer();
-    _variableHeader.writeInteger(_messageID);
+    MqttBuffer variableHeader = MqttBuffer();
+    variableHeader.writeInteger(_messageID);
     for (var i = 0; i < _topics.length; i++) {
-      _variableHeader.writeUtf8String(_topics[i]);
+      variableHeader.writeUtf8String(_topics[i]);
     }
-    fixedHead.remainingLength = _variableHeader.length;
+    fixedHead.remainingLength = variableHeader.length;
     messageStream.addAll(fixedHead.headerBytes());
-    messageStream.addAll(_variableHeader.bytes);
+    messageStream.addBuffer(variableHeader);
   }
 
   @override
   String toString() =>
-      fixedHead.toString() +
-      "\x1b[39mId \x1b[0m" +
-      fixedHead.blue(_messageID.toString().padRight(6)) +
-      // "\x1b[39m, Topic \x1b[0m" +
-      fixedHead.yellow(_topics.join(","));
+      "$fixedHead\x1b[39mId \x1b[0m${fixedHead.blue(_messageID.toString().padRight(6))}${fixedHead.yellow(_topics.join(","))}";
 }

@@ -63,39 +63,39 @@ class MqttMessageConnect extends MqttMessage {
   @override
   void writeTo(MqttBuffer messageStream) {
     fixedHead.messageType = MqttMessageType.connect;
-    MqttBuffer _variableHeader = MqttBuffer();
+    MqttBuffer variableHeader = MqttBuffer();
 
     // 3.1.2.1 Protocol Name
-    _variableHeader.writeUtf8String("MQTT");
+    variableHeader.writeUtf8String("MQTT");
     // 3.1.2.2 Protocol Level
-    _variableHeader.writeBits(4);
-    // _variableHeader.writeBits(value)
+    variableHeader.writeBits(4);
+    // variableHeader.writeBits(value)
 
     // 3.1.2.3 Connect Flags
-    _variableHeader.writeBits(_connectFlagByte());
+    variableHeader.writeBits(_connectFlagByte());
 
     // 3.1.2.10 Keep Alive
-    _variableHeader.writeInteger(_keepalive);
+    variableHeader.writeInteger(_keepalive);
 
     //3.1.3 Payload
-    MqttBuffer _body = MqttBuffer();
+    MqttBuffer body = MqttBuffer();
     // 3.1.3.1 Client Identifier
-    _body.writeUtf8String(_clientIdentifier);
+    body.writeUtf8String(_clientIdentifier);
     // TODO: will support
     // if (willFlag) {
-    //   _body.writeUtf8String("will");
-    //   _body.writeUtf8String("");
+    //   body.writeUtf8String("will");
+    //   body.writeUtf8String("");
     // }
     if (usernameFlag) {
-      _body.writeUtf8String(_username);
+      body.writeUtf8String(_username);
     }
 
     if (passwordFlag) {
-      _body.writeUtf8String(_password);
+      body.writeUtf8String(_password);
     }
-    fixedHead.remainingLength = _variableHeader.length + _body.length;
+    fixedHead.remainingLength = variableHeader.length + body.length;
     messageStream.addAll(fixedHead.headerBytes());
-    messageStream.addAll(_variableHeader.bytes);
-    messageStream.addAll(_body.bytes);
+    messageStream.addBuffer(variableHeader);
+    messageStream.addBuffer(body);
   }
 }

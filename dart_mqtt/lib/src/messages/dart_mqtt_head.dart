@@ -1,11 +1,20 @@
 part of '../mqtt.dart';
 
+/// Thrown when a packet cannot be parsed yet because the buffer does not
+/// contain the complete fixed header. The caller should wait for more bytes.
+class MqttIncompleteMessageException implements Exception {
+  final String message;
+  MqttIncompleteMessageException(this.message);
+  @override
+  String toString() => message;
+}
+
 class MqttFixedHead {
   MqttFixedHead();
 
   MqttFixedHead.readFrom(MqttBuffer buf) {
     _fixedHeaderByte = buf.readBits();
-    _remainingLength = _calculateLength(_readLengthBytes(buf));
+    _remainingLength = _readRemainingLength(buf);
   }
 
   MqttFixedHead asType(MqttMessageType type) {
@@ -27,17 +36,19 @@ class MqttFixedHead {
     _remainingLength = value;
   }
 
-  Uint8List _readLengthBytes(MqttBuffer buf) {
-    final lengthBytes = <int>[];
-    int sizeByte;
+  static int _readRemainingLength(MqttBuffer buf) {
+    var value = 0;
+    var multiplier = 1;
     var byteCount = 0;
+    int sizeByte;
     do {
       if (buf.availableBytes == 0) {
-        throw Exception(
+        throw MqttIncompleteMessageException(
             'dart_mqtt: Unexpected end of buffer while reading remaining length');
       }
       sizeByte = buf.readBits();
-      lengthBytes.add(sizeByte);
+      value += (sizeByte & 0x7f) * multiplier;
+      multiplier *= 0x80;
       byteCount++;
     } while (byteCount < 4 && (sizeByte & 0x80) == 0x80);
 
@@ -46,18 +57,7 @@ class MqttFixedHead {
           'dart_mqtt: Invalid remaining length encoding: exceeds 4 bytes');
     }
 
-    return Uint8List.fromList(lengthBytes);
-  }
-
-  int _calculateLength(Uint8List lengthBytes) {
-    var tmpremainingLength = 0;
-    var multiplier = 1;
-
-    for (final currentByte in lengthBytes) {
-      tmpremainingLength += (currentByte & 0x7f) * multiplier;
-      multiplier *= 0x80;
-    }
-    return tmpremainingLength;
+    return value;
   }
 
   /// Calculates and return the bytes that represent the
