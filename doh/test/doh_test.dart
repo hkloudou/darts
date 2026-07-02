@@ -442,10 +442,12 @@ void main() {
     late HttpServer server;
     late Uri provider;
     var requestCount = 0;
+    var hungConnectionsClosed = 0;
     Map<String, dynamic> Function(String name, String type)? responder;
 
     setUp(() async {
       requestCount = 0;
+      hungConnectionsClosed = 0;
       responder = null;
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       provider = Uri.parse('http://127.0.0.1:${server.port}/resolve');
@@ -455,7 +457,15 @@ void main() {
         final type = req.uri.queryParameters['type'] ?? '';
         final body = responder?.call(name, type);
         if (body == null) {
-          // Never respond: used by the timeout test.
+          // Never respond (timeout test). Detach the raw socket so the test
+          // can observe the client tearing the connection down.
+          final socket = await req.response.detachSocket(writeHeaders: false);
+          void closed() {
+            hungConnectionsClosed++;
+            socket.destroy();
+          }
+
+          socket.listen((_) {}, onDone: closed, onError: (_) => closed());
           return;
         }
         req.response.headers.contentType =
@@ -550,6 +560,15 @@ void main() {
       );
       stopwatch.stop();
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+
+      // The timed-out attempt must tear its connection down rather than
+      // leave the socket alive behind the long-lived DoH instance: the
+      // server must observe EOF on the hung connection.
+      for (var i = 0; i < 40 && hungConnectionsClosed == 0; i++) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      expect(hungConnectionsClosed, greaterThan(0),
+          reason: 'timed-out request must close its connection');
     });
   });
 }

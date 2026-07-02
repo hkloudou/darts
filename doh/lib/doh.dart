@@ -32,7 +32,7 @@ class DoH {
   final String? _proxyHost;
   final int? _proxyPort;
   final bool _allowBadCertificates;
-  HttpClient? _httpClient;
+  bool _disposed = false;
 
   /// Get the default instance (singleton pattern)
   static DoH get instance => _instance ??= DoH();
@@ -64,7 +64,12 @@ class DoH {
     if (_providers.isEmpty) {
       throw ArgumentError('Providers list cannot be empty');
     }
-    _initHttpClient();
+    if (_proxyHost != null && _proxyPort != null) {
+      developer.log(
+        'Using proxy: $_proxyHost:$_proxyPort',
+        name: 'doh.proxy',
+      );
+    }
   }
   
   /// Default DoH provider list
@@ -82,35 +87,33 @@ class DoH {
   /// Get current list of providers
   List<Uri> get providers => List.unmodifiable(_providers);
   
-  /// Initialize HTTP client
-  void _initHttpClient() {
-    _httpClient?.close();
+  /// Build a configured HTTP client for a single query attempt.
+  ///
+  /// A short-lived client per attempt lets a timed-out or hung exchange be
+  /// torn down with close(force: true) without touching concurrent lookups,
+  /// and no fixed connectionTimeout is set: each lookup bounds its whole
+  /// exchange (connect + request + body) with the caller's timeout, so a
+  /// client-level cap would silently override timeouts longer than it.
+  HttpClient _createHttpClient() {
     final context = SecurityContext.defaultContext;
-    // No fixed connectionTimeout: each lookup bounds its whole exchange
-    // (connect + request + body) with the caller's per-attempt timeout, so a
-    // client-level cap would silently override timeouts longer than it.
-    _httpClient = HttpClient(context: context);
+    final client = HttpClient(context: context);
 
     if (_allowBadCertificates) {
-      _httpClient!.badCertificateCallback = (cert, host, port) => true;
+      client.badCertificateCallback = (cert, host, port) => true;
     }
 
-    // Set up proxy if specified
     if (_proxyHost != null && _proxyPort != null) {
-      _httpClient!.findProxy = (uri) {
+      client.findProxy = (uri) {
         return 'PROXY $_proxyHost:$_proxyPort';
       };
-      developer.log(
-        'Using proxy: $_proxyHost:$_proxyPort',
-        name: 'doh.proxy',
-      );
     }
+    return client;
   }
 
-  /// Close HTTP client, stop the cache cleanup timer and release resources
+  /// Stop the cache cleanup timer, release resources and mark the
+  /// instance unusable
   void dispose() {
-    _httpClient?.close();
-    _httpClient = null;
+    _disposed = true;
     _cache.dispose();
   }
   
@@ -267,10 +270,10 @@ class DoH {
     required bool dnssec,
     required Duration timeout,
   }) async {
-    final client = _httpClient;
-    if (client == null) {
-      throw NetworkException('HTTP client not initialized');
+    if (_disposed) {
+      throw NetworkException('HTTP client not initialized (disposed)');
     }
+    final client = _createHttpClient();
     
     final url = provider.replace(queryParameters: {
       'name': domain,
@@ -284,9 +287,7 @@ class DoH {
     );
     
     try {
-      // Bound the whole exchange (connect + request + body) by [timeout];
-      // mutating the shared client's connectionTimeout per call would race
-      // between concurrent lookups and only covered connection setup.
+      // Bound the whole exchange (connect + request + body) by [timeout].
       return await () async {
         final request = await client.getUrl(url);
         request.headers.add('Accept', 'application/dns-json');
@@ -314,6 +315,11 @@ class DoH {
       throw NetworkException('HTTP error: ${e.message}', provider.toString(), e);
     } catch (e) {
       throw NetworkException('Unexpected error: $e', provider.toString(), e);
+    } finally {
+      // The client is per-attempt, so force-close tears down the exchange
+      // even when it hung or timed out; a hung provider can no longer leave
+      // sockets and request futures alive behind a long-lived DoH instance.
+      client.close(force: true);
     }
   }
   
