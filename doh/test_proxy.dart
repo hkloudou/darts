@@ -184,30 +184,3 @@ Future<void> _testCaching(DoH doh) async {
     print('     ✗ Cache test failed: $e');
   }
 }
-
-/// Test provider diversity and error handling
-Future<void> _testProviderDiversity(DoH doh) async {
-  print('   Testing provider diversity...');
-  
-  final testDomains = ['google.com', 'cloudflare.com', 'example.com'];
-  final providers = <Uri>{};
-  
-  for (final domain in testDomains) {
-    try {
-      final results = await doh.lookup(domain, DohRequestType.A, 
-          cache: false, attempts: 1);
-      if (results.isNotEmpty && results.first.provider != null) {
-        providers.add(results.first.provider!);
-      }
-    } catch (e) {
-      // Continue with next domain
-    }
-  }
-  
-  print('     ✓ Used ${providers.length} different providers');
-  if (providers.isNotEmpty) {
-    for (final provider in providers.take(3)) { // Show max 3 providers
-      print('       - ${provider.host}');
-    }
-  }
-} 

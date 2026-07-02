@@ -20,7 +20,5 @@ class MqttMessagePuback extends MqttMessage {
 
   @override
   String toString() =>
-      fixedHead.toString() +
-      "\x1b[39mId \x1b[0m" +
-      fixedHead.green(msgid.toString().padRight(6));
+      "$fixedHead\x1b[39mId \x1b[0m${fixedHead.green(msgid.toString().padRight(6))}";
 }

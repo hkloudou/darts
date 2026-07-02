@@ -37,23 +37,19 @@ class MqttMessagePublish extends MqttMessage {
   @override
   void writeTo(MqttBuffer messageStream) {
     fixedHead.messageType = MqttMessageType.publish;
-    MqttBuffer _variableHeader = MqttBuffer();
-    _variableHeader.writeUtf8String(_topicName);
+    MqttBuffer variableHeader = MqttBuffer();
+    variableHeader.writeUtf8String(_topicName);
     if (fixedHead.qos.index > 0) {
-      _variableHeader.writeInteger(msgid);
+      variableHeader.writeInteger(msgid);
     }
-    fixedHead.remainingLength = _variableHeader.length + data.length;
+    fixedHead.remainingLength = variableHeader.length + data.length;
     messageStream.addAll(fixedHead.headerBytes());
-    messageStream.addAll(_variableHeader.bytes);
+    messageStream.addBuffer(variableHeader);
     messageStream.addAll(data);
   }
 
   @override
   String toString() =>
-      fixedHead.toString() +
-      "\x1b[39mId \x1b[0m" +
-      fixedHead.blue(msgid.toString().padRight(6)) +
-      // "\x1b[39m, Topic \x1b[0m" +
-      fixedHead.yellow(_topicName) +
-      "\x1b[39;2m(Size:${data.length.toString()})\x1b[0m";
+      "$fixedHead\x1b[39mId \x1b[0m${fixedHead.blue(msgid.toString().padRight(6))}"
+      "${fixedHead.yellow(_topicName)}\x1b[39;2m(Size:${data.length})\x1b[0m";
 }

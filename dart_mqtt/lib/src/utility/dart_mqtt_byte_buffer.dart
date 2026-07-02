@@ -20,8 +20,22 @@ class MqttBuffer {
     _off = 0;
   }
 
+  /// Moves the read cursor back to [position], previously obtained
+  /// from [offset]. Used to un-consume a partially parsed packet.
+  void seek(int position) {
+    if (position < 0 || position > length) {
+      throw RangeError.range(position, 0, length, 'position');
+    }
+    _off = position;
+  }
+
   void addAll(Iterable<int> iterable) {
     _buf.addAll(iterable);
+  }
+
+  /// Appends the full contents of [other] without an intermediate copy.
+  void addBuffer(MqttBuffer other) {
+    _buf.addAll(other._buf);
   }
 
   Uint8List get bytes => Uint8List.fromList(_buf);
@@ -52,12 +66,12 @@ class MqttBuffer {
     if ((length < count) || (_off + count) > length) {
       throw Exception('mqtt_client::ByteBuffer: The buffer did not have '
           'enough bytes for the read operation '
-          'length $length, count $count, position $_off, buffer $_buf');
+          'length $length, count $count, position $_off');
     }
-    final tmp = <int>[];
-    tmp.addAll(_buf.getRange(_off, _off + count));
+    final result = Uint8List(count);
+    result.setRange(0, count, _buf, _off);
     _off += count;
-    return Uint8List.fromList(tmp);
+    return result;
   }
 
   /// Read a bits(1 byte)
@@ -151,37 +165,45 @@ class MqttBuffer {
 
   static String _validateString(String s) {
     for (var i = 0; i < s.length; i++) {
+      final c = s.codeUnitAt(i);
+
       /// http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#RFC3629
-      // [MQTT-1.5.3-1] U+D800 and U+DFFF
-      if (s.codeUnitAt(i) >= 0xD800 && s.codeUnitAt(i) <= 0xDFFF) {
-        throw Exception('dart_mqtt::MQTTEncoding: The string has extended '
-            'The character data in a UTF-8 encoded string MUST be well-formed UTF-8 as defined by the Unicode specification [Unicode] and restated in RFC 3629 [RFC3629]. In particular this data MUST NOT include encodings of code points between U+D800 and U+DFFF. If a Server or Client receives a Control Packet containing ill-formed UTF-8 it MUST close the Network Connection [MQTT-1.5.3-1].');
+      // [MQTT-1.5.3-1] forbids unpaired surrogate code points U+D800..U+DFFF.
+      // A well-formed high+low surrogate pair encodes U+10000..U+10FFFF
+      // (e.g. emoji), which is valid UTF-8 and therefore allowed.
+      if (c >= 0xD800 && c <= 0xDFFF) {
+        if (c >= 0xDC00 || i + 1 >= s.length) {
+          throw Exception('dart_mqtt::MQTTEncoding: ill-formed UTF-8: '
+              'unpaired surrogate. Encodings of code points between U+D800 and U+DFFF are forbidden [MQTT-1.5.3-1].');
+        }
+        final low = s.codeUnitAt(i + 1);
+        if (low < 0xDC00 || low > 0xDFFF) {
+          throw Exception('dart_mqtt::MQTTEncoding: ill-formed UTF-8: '
+              'unpaired surrogate. Encodings of code points between U+D800 and U+DFFF are forbidden [MQTT-1.5.3-1].');
+        }
+        // Skip the low surrogate; supplementary-plane code points carry no
+        // further restrictions.
+        i++;
+        continue;
       }
 
       /// http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html
       // [MQTT-1.5.3-2]
-      if (s.codeUnitAt(i) == 0x00) {
+      if (c == 0x00) {
         throw Exception('dart_mqtt::MQTTEncoding: The string has extended '
             'A UTF-8 encoded string MUST NOT include an encoding of the null character U+0000. If a receiver (Server or Client) receives a Control Packet containing U+0000 it MUST close the Network Connection [MQTT-1.5.3-2].');
       }
-      if (s.codeUnitAt(i) >= 0x0001 && s.codeUnitAt(i) <= 0x001F) {
+      if (c >= 0x0001 && c <= 0x001F) {
         throw Exception('dart_mqtt::MQTTEncoding: The string has extended '
             'UTF characters, control string are not supported');
       }
 
-      if (s.codeUnitAt(i) >= 0x007F && s.codeUnitAt(i) <= 0x009F) {
+      if (c >= 0x007F && c <= 0x009F) {
         throw Exception('dart_mqtt::MQTTEncoding: The string has extended '
             'UTF characters, control string are not supported');
       }
 
       // TODO: A UTF-8 encoded sequence 0xEF 0xBB 0xBF is always to be interpreted to mean U+FEFF ("ZERO WIDTH NO-BREAK SPACE") wherever it appears in a string and MUST NOT be skipped over or stripped off by a packet receiver [MQTT-1.5.3-3].
-
-      // mqtt_client
-      // if (s.codeUnitAt(i) > 0x7F) {
-      //   throw Exception(
-      //       'dart_mqtt::MQTTEncoding: The output string has extended '
-      //       'UTF characters, which are not supported');
-      // }
     }
     return s;
   }

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:doh/doh.dart';
 import 'package:test/test.dart';
 
@@ -433,6 +435,140 @@ void main() {
       
       // All providers should be covered
       expect(direct.length + proxy.length, equals(all.length));
+    });
+  });
+
+  group('Offline behavior (local mock server)', () {
+    late HttpServer server;
+    late Uri provider;
+    var requestCount = 0;
+    var hungConnectionsClosed = 0;
+    Map<String, dynamic> Function(String name, String type)? responder;
+
+    setUp(() async {
+      requestCount = 0;
+      hungConnectionsClosed = 0;
+      responder = null;
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      provider = Uri.parse('http://127.0.0.1:${server.port}/resolve');
+      server.listen((req) async {
+        requestCount++;
+        final name = req.uri.queryParameters['name'] ?? '';
+        final type = req.uri.queryParameters['type'] ?? '';
+        final body = responder?.call(name, type);
+        if (body == null) {
+          // Never respond (timeout test). Detach the raw socket so the test
+          // can observe the client tearing the connection down.
+          final socket = await req.response.detachSocket(writeHeaders: false);
+          void closed() {
+            hungConnectionsClosed++;
+            socket.destroy();
+          }
+
+          socket.listen((_) {}, onDone: closed, onError: (_) => closed());
+          return;
+        }
+        req.response.headers.contentType =
+            ContentType('application', 'dns-json');
+        req.response.write(jsonEncode(body));
+        await req.response.close();
+      });
+    });
+
+    tearDown(() async {
+      await server.close(force: true);
+    });
+
+    Map<String, dynamic> cnameChain(String name, String type) => {
+          'Status': 0,
+          'TC': false,
+          'RD': true,
+          'RA': true,
+          'AD': false,
+          'CD': false,
+          'Question': [
+            {'name': name, 'type': 1}
+          ],
+          'Answer': [
+            {
+              'name': name,
+              'type': 5,
+              'TTL': 300,
+              'data': 'target.example.net.'
+            },
+            {
+              'name': 'target.example.net.',
+              'type': 1,
+              'TTL': 300,
+              'data': '192.0.2.1'
+            },
+          ],
+        };
+
+    test('CNAME chain responses resolve without crashing', () async {
+      responder = cnameChain;
+      final doh = DoH(providers: [provider]);
+      addTearDown(doh.dispose);
+
+      final results = await doh.lookup('www.example.com', DohRequestType.A);
+      // The A record belongs to the canonical name; an alias record for the
+      // queried domain must be synthesized.
+      expect(results, isNotEmpty);
+      expect(results.every((r) => r.name == 'www.example.com'), isTrue);
+      expect(results.first.data, '192.0.2.1');
+    });
+
+    test('second lookup is served from cache without hitting the server',
+        () async {
+      responder = cnameChain;
+      final doh = DoH(providers: [provider]);
+      addTearDown(doh.dispose);
+
+      await doh.lookup('www.example.com', DohRequestType.A);
+      final countAfterFirst = requestCount;
+      final cached = await doh.lookup('www.example.com', DohRequestType.A);
+      expect(cached, isNotEmpty);
+      expect(requestCount, countAfterFirst);
+    });
+
+    test('clearAllCache actually clears cached entries', () async {
+      responder = cnameChain;
+      final doh = DoH(providers: [provider]);
+      addTearDown(doh.dispose);
+
+      await doh.lookup('www.example.com', DohRequestType.A);
+      expect(doh.cacheEntryCount, greaterThan(0));
+      doh.clearAllCache();
+      expect(doh.cacheEntryCount, 0);
+
+      final countBefore = requestCount;
+      await doh.lookup('www.example.com', DohRequestType.A);
+      expect(requestCount, greaterThan(countBefore),
+          reason: 'after clearing, the lookup must hit the server again');
+    });
+
+    test('per-attempt timeout bounds a hung server', () async {
+      responder = null; // server accepts but never responds
+      final doh = DoH(providers: [provider]);
+      addTearDown(doh.dispose);
+
+      final stopwatch = Stopwatch()..start();
+      await expectLater(
+        doh.lookup('slow.example.com', DohRequestType.A,
+            timeout: const Duration(milliseconds: 300)),
+        throwsA(isA<DnsResolutionException>()),
+      );
+      stopwatch.stop();
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+
+      // The timed-out attempt must tear its connection down rather than
+      // leave the socket alive behind the long-lived DoH instance: the
+      // server must observe EOF on the hung connection.
+      for (var i = 0; i < 40 && hungConnectionsClosed == 0; i++) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      expect(hungConnectionsClosed, greaterThan(0),
+          reason: 'timed-out request must close its connection');
     });
   });
 }

@@ -56,19 +56,13 @@ class XTransportTcpClient implements ITransportClient {
   @override
   void close() {
     _socket?.close();
-    if (log) {}
-    loger.log(
-      "\u001b[31m${"closed"}\u001b[0m",
-      time: DateTime.now(),
-      name: "tcp",
-    );
-    // loger.log("close: socket=${_socket != null}, status=$status", name: "tcp");
-    // try {
-    //   _socket?.destroy();
-    // } catch (e) {
-    //   loger.log("close: destroy error: $e", name: "tcp");
-    // }
-    // loger.log("close: done", name: "tcp");
+    if (log) {
+      loger.log(
+        "\u001b[31m${"closed"}\u001b[0m",
+        time: DateTime.now(),
+        name: "tcp",
+      );
+    }
   }
 
   // Events
@@ -93,17 +87,17 @@ class XTransportTcpClient implements ITransportClient {
         assert(_port > 0 && _port < 65536);
 
   Future<Socket> getConnectionSocket({Duration? duration}) async {
-    var _tmpSocket = await Socket.connect(_ip, _port,
+    var tmpSocket = await Socket.connect(_ip, _port,
         timeout: duration ?? const Duration(seconds: 60));
-    if (_tmpSocket.address.type != InternetAddressType.unix) {
-      _tmpSocket.setOption(SocketOption.tcpNoDelay, true);
+    if (tmpSocket.address.type != InternetAddressType.unix) {
+      tmpSocket.setOption(SocketOption.tcpNoDelay, true);
     }
 
     if (credentials.isSecure) {
       // Todo(sigurdm): We want to pass supportedProtocols: ['h2'].
       // http://dartbug.com/37950
       return await SecureSocket.secure(
-        _tmpSocket,
+        tmpSocket,
         host: credentials.authority ?? _ip,
         context: credentials.securityContext,
         onBadCertificate: (cert) {
@@ -117,7 +111,7 @@ class XTransportTcpClient implements ITransportClient {
         },
       );
     }
-    return _tmpSocket;
+    return tmpSocket;
   }
 
   /// [TCP] connect
@@ -141,7 +135,7 @@ class XTransportTcpClient implements ITransportClient {
     }
     status = ConnectStatus.connecting;
     try {
-      _socket = await getConnectionSocket(duration: duration);
+      _socket = await getConnectionSocket(duration: _duration);
       _remoteInfo = RemoteInfo(
         address: _socket?.remoteAddress.address ?? "",
         host: (credentials.isSecure ? credentials.authority : null) ??
@@ -178,16 +172,16 @@ class XTransportTcpClient implements ITransportClient {
   /// internal function
   Future<StreamSubscription<Uint8List>> _broadcastNotifications(
       {Duration? deadline}) async {
-    Stream<Uint8List>? _sub = _socket;
+    Stream<Uint8List>? sub = _socket;
     if (deadline != null) {
-      _sub = _socket?.timeout(
+      sub = _socket?.timeout(
         deadline * 1.5,
         onTimeout: (sink) {
           close();
         },
       );
     }
-    var ret = _sub?.listen(
+    var ret = sub?.listen(
       (streamData) {
         _onMessage?.call(Message(
             message: streamData,

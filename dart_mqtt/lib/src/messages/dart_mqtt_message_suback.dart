@@ -13,8 +13,7 @@ class MqttMessageSuback extends MqttMessage {
   @override
   void readFrom(MqttBuffer messageStream) {
     msgid = messageStream.readInteger();
-    final count = fixedHead.remainingLength - 2;
-    returnCodes = List.generate(count, (_) => messageStream.readBits());
+    returnCodes = messageStream.read(fixedHead.remainingLength - 2);
   }
 
   String _code() {
@@ -29,9 +28,5 @@ class MqttMessageSuback extends MqttMessage {
 
   @override
   String toString() =>
-      fixedHead.toString() +
-      "\x1b[39mId \x1b[0m" +
-      fixedHead.blue(msgid.toString().padRight(6)) +
-      // "\x1b[39m, \x1b[0m" +
-      _code();
+      "$fixedHead\x1b[39mId \x1b[0m${fixedHead.blue(msgid.toString().padRight(6))}${_code()}";
 }

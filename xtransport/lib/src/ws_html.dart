@@ -1,3 +1,6 @@
+// TODO: migrate to package:web + dart:js_interop once it can be
+// verified in a browser; dart:html still works on current Dart 3.x.
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html';
@@ -93,7 +96,7 @@ class XTransportWsClient implements ITransportClient {
         name: "ws",
       );
     }
-    var _tmpSocket = WebSocket(
+    var tmpSocket = WebSocket(
       "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
       protocols?.toList(),
     );
@@ -101,7 +104,7 @@ class XTransportWsClient implements ITransportClient {
     // credentials.isSecure ? Sec
     // Web
 
-    return _tmpSocket;
+    return tmpSocket;
   }
 
   /// [WS] connect
@@ -156,10 +159,6 @@ class XTransportWsClient implements ITransportClient {
   void _initializeWebSocketEvents() {
     if (_socket == null) return;
 
-    _socket?.onOpen.listen((event) {
-      _onConnect?.call();
-    });
-
     _onMessageSubscription = _socket?.onMessage.listen((MessageEvent event) {
       Uint8List message = Uint8List.fromList([]);
       if (event.data is ByteBuffer) {
@@ -186,9 +185,12 @@ class XTransportWsClient implements ITransportClient {
         );
         return;
       } else {
-        // typof
-        print("error fotmat${event.data.runtimeType}");
-        // Handle other types of data or errors
+        if (log) {
+          loger.log(
+            "unsupported message format: ${event.data.runtimeType}",
+            name: "ws",
+          );
+        }
         return;
       }
       _onMessage?.call(Message(

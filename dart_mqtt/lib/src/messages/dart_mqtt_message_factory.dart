@@ -27,6 +27,8 @@ class MqttMessageFactory {
     try {
       var head = MqttFixedHead.readFrom(messageStream);
       return head;
+    } on MqttIncompleteMessageException {
+      rethrow;
     } on Exception catch (e) {
       throw Exception('The data provided in the message stream was not a '
           'valid MQTT Message, '

@@ -26,49 +26,50 @@ export './model/doh_response.dart' show DoHResponse, DoHQuestion, DoHAnswer;
 /// ```
 class DoH {
   static DoH? _instance;
-  static final Object _lock = Object();
-  
+
   final DohAnswerCache _cache = DohAnswerCache();
   final List<Uri> _providers;
   final String? _proxyHost;
   final int? _proxyPort;
-  HttpClient? _httpClient;
-  
+  final bool _allowBadCertificates;
+  bool _disposed = false;
+
   /// Get the default instance (singleton pattern)
-  static DoH get instance {
-    if (_instance == null) {
-      synchronized(_lock, () {
-        _instance ??= DoH();
-      });
-    }
-    return _instance!;
-  }
-  
+  static DoH get instance => _instance ??= DoH();
+
   /// Reset singleton instance (mainly for testing)
   static void resetInstance() {
-    synchronized(_lock, () {
-      _instance?._httpClient?.close();
-      _instance = null;
-    });
+    _instance?.dispose();
+    _instance = null;
   }
-  
+
   /// Create new DoH instance
-  /// 
+  ///
   /// [providers] List of DoH providers to use
   /// If null, will use the default provider list
   /// [proxyHost] Proxy server host (for testing with proxies like 127.0.0.1)
   /// [proxyPort] Proxy server port (for testing with proxies like 7890)
+  /// [allowBadCertificates] Accept invalid TLS certificates. Defaults to
+  /// false so provider certificates are actually validated; only enable
+  /// this for debugging through intercepting proxies.
   DoH({
     List<Uri>? providers,
     String? proxyHost,
     int? proxyPort,
+    bool allowBadCertificates = false,
   })  : _providers = List.unmodifiable(providers ?? _defaultProviders),
         _proxyHost = proxyHost,
-        _proxyPort = proxyPort {
+        _proxyPort = proxyPort,
+        _allowBadCertificates = allowBadCertificates {
     if (_providers.isEmpty) {
       throw ArgumentError('Providers list cannot be empty');
     }
-    _initHttpClient();
+    if (_proxyHost != null && _proxyPort != null) {
+      developer.log(
+        'Using proxy: $_proxyHost:$_proxyPort',
+        name: 'doh.proxy',
+      );
+    }
   }
   
   /// Default DoH provider list
@@ -86,30 +87,34 @@ class DoH {
   /// Get current list of providers
   List<Uri> get providers => List.unmodifiable(_providers);
   
-  /// Initialize HTTP client
-  void _initHttpClient() {
-    _httpClient?.close();
+  /// Build a configured HTTP client for a single query attempt.
+  ///
+  /// A short-lived client per attempt lets a timed-out or hung exchange be
+  /// torn down with close(force: true) without touching concurrent lookups,
+  /// and no fixed connectionTimeout is set: each lookup bounds its whole
+  /// exchange (connect + request + body) with the caller's timeout, so a
+  /// client-level cap would silently override timeouts longer than it.
+  HttpClient _createHttpClient() {
     final context = SecurityContext.defaultContext;
-    _httpClient = HttpClient(context: context)
-      ..connectionTimeout = const Duration(seconds: 10)
-      ..badCertificateCallback = (cert, host, port) => true;
-    
-    // Set up proxy if specified
+    final client = HttpClient(context: context);
+
+    if (_allowBadCertificates) {
+      client.badCertificateCallback = (cert, host, port) => true;
+    }
+
     if (_proxyHost != null && _proxyPort != null) {
-      _httpClient!.findProxy = (uri) {
+      client.findProxy = (uri) {
         return 'PROXY $_proxyHost:$_proxyPort';
       };
-      developer.log(
-        'Using proxy: $_proxyHost:$_proxyPort',
-        name: 'doh.proxy',
-      );
     }
+    return client;
   }
-  
-  /// Close HTTP client and cleanup resources
+
+  /// Stop the cache cleanup timer, release resources and mark the
+  /// instance unusable
   void dispose() {
-    _httpClient?.close();
-    _httpClient = null;
+    _disposed = true;
+    _cache.dispose();
   }
   
   /// DNS lookup
@@ -192,8 +197,7 @@ class DoH {
   
   /// Clear all cache entries
   void clearAllCache() {
-    // TODO: Add clearAll method in cache.dart
-    developer.log('Cache cleared', name: 'doh.cache');
+    _cache.clearAll();
   }
   
   /// Get cache statistics
@@ -266,10 +270,10 @@ class DoH {
     required bool dnssec,
     required Duration timeout,
   }) async {
-    final client = _httpClient;
-    if (client == null) {
-      throw NetworkException('HTTP client not initialized');
+    if (_disposed) {
+      throw NetworkException('HTTP client not initialized (disposed)');
     }
+    final client = _createHttpClient();
     
     final url = provider.replace(queryParameters: {
       'name': domain,
@@ -283,28 +287,26 @@ class DoH {
     );
     
     try {
-      // Set timeout
-      client.connectionTimeout = timeout;
-      
-      final request = await client.getUrl(url);
-      request.headers.add('Accept', 'application/dns-json');
-      request.headers.add('User-Agent', 'DoH-Dart-Client/0.0.4');
-      
-      final response = await request.close();
-      
-      if (response.statusCode != 200) {
-        throw NetworkException(
-          'HTTP ${response.statusCode}: ${response.reasonPhrase}',
-          provider.toString(),
-        );
-      }
-      
-      final responseBody = await response
-          .cast<List<int>>()
-          .transform(const Utf8Decoder())
-          .join();
-      
-      return _parseResponse<T>(responseBody, domain, resType, provider);
+      // Bound the whole exchange (connect + request + body) by [timeout].
+      return await () async {
+        final request = await client.getUrl(url);
+        request.headers.add('Accept', 'application/dns-json');
+        request.headers.add('User-Agent', 'DoH-Dart-Client/0.0.4');
+
+        final response = await request.close();
+
+        if (response.statusCode != 200) {
+          throw NetworkException(
+            'HTTP ${response.statusCode}: ${response.reasonPhrase}',
+            provider.toString(),
+          );
+        }
+
+        final responseBody = await utf8.decodeStream(response);
+
+        return _parseResponse<T>(responseBody, domain, resType, provider);
+      }()
+          .timeout(timeout);
     } on SocketException catch (e) {
       throw NetworkException('Socket error: ${e.message}', provider.toString(), e);
     } on TimeoutException catch (e) {
@@ -313,6 +315,11 @@ class DoH {
       throw NetworkException('HTTP error: ${e.message}', provider.toString(), e);
     } catch (e) {
       throw NetworkException('Unexpected error: $e', provider.toString(), e);
+    } finally {
+      // The client is per-attempt, so force-close tears down the exchange
+      // even when it hung or timed out; a hung provider can no longer leave
+      // sockets and request futures alive behind a long-lived DoH instance.
+      client.close(force: true);
     }
   }
   
@@ -363,19 +370,22 @@ class DoH {
   
   /// Process answer records in response
   void _processAnswers(List<DoHAnswer> answers, String domain, int resType, Uri provider) {
+    // Collect the aliases separately: adding to [answers] while iterating it
+    // throws ConcurrentModificationError (hit on every CNAME chain response).
+    final aliases = <DoHAnswer>[];
     for (final answer in answers) {
       // Normalize domain name
       answer.name = answer.name.toLowerCase();
       answer.provider = provider;
-      
+
       // Remove trailing dot
       if (answer.name.endsWith('.')) {
         answer.name = answer.name.substring(0, answer.name.length - 1);
       }
-      
+
       // If the response is CNAME but querying for other types, add a record pointing to original domain
       if (answer.name != domain && answer.type == resType) {
-        answers.add(DoHAnswer(
+        aliases.add(DoHAnswer(
           name: domain,
           ttl: answer.ttl,
           type: answer.type,
@@ -384,12 +394,13 @@ class DoH {
         ));
       }
     }
+    answers.addAll(aliases);
   }
 }
 
 /// Simple synchronization lock implementation
+@Deprecated('Dart isolates are single-threaded; this was always a no-op '
+    'and is no longer used internally')
 void synchronized(Object lock, void Function() callback) {
-  // This is a simplified implementation in Dart
-  // In production, might need to use the synchronized package
   callback();
 }

@@ -14,7 +14,9 @@ class MqttMessageConnack extends MqttMessage {
     super.readFrom(messageStream);
     final _ = messageStream.readBits();
     final ret = messageStream.readBits();
-    if (ret >= MqttConnectReturnCode.values.length) {
+    // MQTT 3.1.1 Table 3.1 defines return codes 0-5; 6-255 are reserved and
+    // must be treated as malformed.
+    if (ret > MqttConnectReturnCode.notAuthorized.index) {
       throw Exception(
           'dart_mqtt: Unknown CONNACK return code: 0x${ret.toRadixString(16)}');
     }
@@ -34,5 +36,5 @@ class MqttMessageConnack extends MqttMessage {
   }
 
   @override
-  String toString() => fixedHead.toString() + "[${_status(returnCode)}]";
+  String toString() => "$fixedHead[${_status(returnCode)}]";
 }

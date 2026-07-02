@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:doh/doh.dart';
 
 /// DNS over HTTPS client usage examples
