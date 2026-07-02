@@ -200,9 +200,11 @@ class DohAnswerCache {
     _updateAccessTime(name, resType);
     _hitCount++;
 
-    // Safe type casting
+    // Return an eager copy: a lazy cast() view would be backed by the
+    // internal list, so cache eviction (or caller mutation) would corrupt
+    // previously returned results, and a bad cast would only surface later.
     try {
-      return records.cast<T>();
+      return List<T>.from(records);
     } catch (e) {
       developer.log(
         'Type cast error in cache lookup: $e',
@@ -267,13 +269,15 @@ class DohAnswerCache {
     final currentTime = DateTime.now().millisecondsSinceEpoch;
     int removedCount = 0;
 
-    for (final typeCache in _cache.values) {
+    for (final cacheEntry in _cache.entries) {
+      final type = cacheEntry.key;
+      final typeCache = cacheEntry.value;
       final expiredKeys = <String>[];
-      
+
       for (final entry in typeCache.entries) {
         final name = entry.key;
         final records = entry.value;
-        
+
         // Remove expired records
         records.removeWhere((record) {
           final expired = record.validUntil < currentTime;
@@ -290,7 +294,7 @@ class DohAnswerCache {
       // Remove empty domain entries
       for (final key in expiredKeys) {
         typeCache.remove(key);
-        _accessTimes.remove(_makeAccessKey(key, 0)); // type doesn't matter for removal
+        _accessTimes.remove(_makeAccessKey(key, type));
       }
     }
 
