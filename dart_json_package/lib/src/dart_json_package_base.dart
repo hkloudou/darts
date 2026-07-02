@@ -1,63 +1,55 @@
 typedef JsonHandlerCallBack<T> = T Function(dynamic json);
 Type _typeOf<T>() => T;
 
-var _jsonHandlerCallBackMap = <int, JsonHandlerCallBack>{};
-void registeJsonHandle<T>(JsonHandlerCallBack<T> handle) {
-  _jsonHandlerCallBackMap[_typeOf<T>().hashCode] = handle;
-  _jsonHandlerCallBackMap[_typeOf<List<T>>().hashCode] = ((dynamic obj) {
-    var x = (obj as List<dynamic>?)?.map((e) => handle(e)).toList() ?? [];
-    return x;
-  });
+final _jsonHandlerCallBackMap = <Type, JsonHandlerCallBack>{};
+
+/// Registers a decoder for [T]; a `List<T>` decoder is registered automatically.
+void registerJsonHandler<T>(JsonHandlerCallBack<T> handle) {
+  _jsonHandlerCallBackMap[T] = handle;
+  _jsonHandlerCallBackMap[_typeOf<List<T>>()] = (dynamic obj) {
+    return (obj as List<dynamic>?)?.map((e) => handle(e)).toList() ?? <T>[];
+  };
 }
 
-List<int> _directReturn = [
-  _typeOf<Map<String, dynamic>>().hashCode,
-  _typeOf<String>().hashCode,
-  _typeOf<int>().hashCode,
-];
+@Deprecated('Use registerJsonHandler')
+void registeJsonHandle<T>(JsonHandlerCallBack<T> handle) =>
+    registerJsonHandler<T>(handle);
 
 T fromJson<T>(dynamic json) {
-  if (_jsonHandlerCallBackMap.containsKey(T.hashCode)) {
-    return _jsonHandlerCallBackMap[T.hashCode]!(json) as T;
+  final handler = _jsonHandlerCallBackMap[T];
+  if (handler != null) {
+    return handler(json) as T;
   }
-  if (_directReturn.contains(T.hashCode)) {
-    return json as T;
-  }
-
   return json as T;
 }
 
-// @JsonSerializable(fieldRename: FieldRename.none)
-// @immutable
+/// A `{code, msg, data}` envelope decoded from a JSON response body.
 class HttpJsonPackage<T> {
-  int _c = -1;
-  String _m = "";
-  T? _d;
-  T? get data {
-    return this._d;
-  }
+  final int _c;
+  final String _m;
+  final T? _d;
 
-  int get code {
-    return this._c;
-  }
+  T? get data => _d;
 
-  String get msg {
-    return this._m;
-  }
+  int get code => _c;
 
-  bool get canced {
-    return _c == -999;
-  }
+  String get msg => _m;
 
-  HttpJsonPackage(this._c, this._m, this._d);
-  static Type _typeOf<T>() => T;
-  @override
+  /// True when this package was produced by [HttpJsonPackage.cancel].
+  bool get canceled => _c == -999;
+
+  @Deprecated('Use canceled')
+  bool get canced => canceled;
+
+  const HttpJsonPackage(this._c, this._m, this._d);
+
   factory HttpJsonPackage.fromJson(
     Map<String, dynamic>? json,
   ) {
-    // print(T);
-    if (_typeOf<T>().hashCode == _typeOf<dynamic>().hashCode) {
-      throw "please use type HttpJsonPackage.fromJson<Type> Type extends fromJson";
+    if (_typeOf<T>() == dynamic) {
+      throw ArgumentError(
+          'HttpJsonPackage.fromJson requires an explicit type argument; '
+          'register a handler for T via registerJsonHandler');
     }
     // 读取原生包，然后用兼容模式吧
     var code = json?['c'] as int? ??
@@ -73,10 +65,10 @@ class HttpJsonPackage<T> {
         json?['MSG'] as String? ??
         json?['message'] as String? ??
         json?['Message'] as String? ??
-        json?['MSSSAGE'] as String? ??
+        json?['MESSAGE'] as String? ??
         "";
     // 如果是空的话，就返回空就好
-    if (_typeOf<T>().hashCode == _typeOf<void>().hashCode) {
+    if (_typeOf<T>() == _typeOf<void>()) {
       return HttpJsonPackage<T>(code, msg, null);
     }
     T? data;
@@ -89,7 +81,7 @@ class HttpJsonPackage<T> {
     } catch (e) {
       return HttpJsonPackage<T>(
         -1,
-        "err:" + e.toString(),
+        "err:$e",
         null,
       );
     }
@@ -99,13 +91,6 @@ class HttpJsonPackage<T> {
       data,
     );
   }
-  // Map<String, dynamic> toJson() {
-  //   return {
-  //     "c": _c,
-  //     "m": _m,
-  //     "d": _d,
-  //   };
-  // }
 
   factory HttpJsonPackage.cancel() {
     return HttpJsonPackage<T>(-999, "", null);

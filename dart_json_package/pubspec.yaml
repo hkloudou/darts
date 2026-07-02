@@ -4,3 +4,6 @@ version: 1.0.6
 repository: https://github.com/hkloudou/darts/tree/main/dart_json_package
 environment:
   sdk: '>=3.0.5 <4.0.0'
+
+dev_dependencies:
+  lints: ^3.0.0
