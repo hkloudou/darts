@@ -132,11 +132,13 @@ void main() {
 
     test('reconnect keeps retrying when a connect attempt fails', () async {
       final transport = FakeTransport();
+      var closeEvents = 0;
       final client = MqttClient(
         transport,
         allowReconnect: true,
         reconnectWait: const Duration(milliseconds: 50),
       )..withClientID('c1');
+      client.onClose(() async => closeEvents++);
       client.start();
       await pump();
       expect(transport.connectAttempts, 1);
@@ -147,11 +149,39 @@ void main() {
       await pump(400);
       expect(transport.connectAttempts, greaterThan(2),
           reason: 'failed reconnects must reschedule themselves');
+      expect(closeEvents, 1,
+          reason: 'only the established-connection drop is a close; '
+              'failed reconnect attempts must not fire onClose');
 
       // Network comes back: the loop recovers.
       transport.reachable = true;
       await pump(200);
       expect(transport.status, ConnectStatus.connected);
+      client.dispose();
+      await pump(100);
+    });
+
+    test('a failing initial connect retries without firing onClose',
+        () async {
+      final transport = FakeTransport()..reachable = false;
+      var closeEvents = 0;
+      final client = MqttClient(
+        transport,
+        allowReconnect: true,
+        reconnectWait: const Duration(milliseconds: 50),
+      )..withClientID('c1');
+      client.onClose(() async => closeEvents++);
+      client.start();
+      await pump(300);
+      expect(transport.connectAttempts, greaterThan(1),
+          reason: 'a failed initial connect must be retried');
+      expect(closeEvents, 0,
+          reason: 'nothing was ever connected, so nothing closed');
+
+      transport.reachable = true;
+      await pump(200);
+      expect(transport.status, ConnectStatus.connected);
+      expect(closeEvents, 0);
       client.dispose();
       await pump(100);
     });

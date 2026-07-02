@@ -86,8 +86,10 @@ class DoH {
   void _initHttpClient() {
     _httpClient?.close();
     final context = SecurityContext.defaultContext;
-    _httpClient = HttpClient(context: context)
-      ..connectionTimeout = const Duration(seconds: 10);
+    // No fixed connectionTimeout: each lookup bounds its whole exchange
+    // (connect + request + body) with the caller's per-attempt timeout, so a
+    // client-level cap would silently override timeouts longer than it.
+    _httpClient = HttpClient(context: context);
 
     if (_allowBadCertificates) {
       _httpClient!.badCertificateCallback = (cert, host, port) => true;

@@ -40,7 +40,8 @@ class MqttClient {
   final _dataArriveCallBack = <String, EvtMqttPublishArrived>{};
   final _pendingPubacks = <int, Completer<void>>{};
   final _midDispenser = MessageIdentifierDispenser();
-  bool _closeHandled = false;
+  bool _wasConnected = false;
+  bool _reconnectPending = false;
 
   // Events
   void Function(MqttMessageConnack msg)? _onMqttConack;
@@ -238,15 +239,20 @@ class MqttClient {
       Future.delayed(const Duration(seconds: 1)).then((_) => _onConnectClose());
       return;
     }
-    // The transport can report a single disconnect through both onError and
-    // onClose; handle it once per connection.
-    if (_closeHandled) return;
-    _closeHandled = true;
-    _onClose?.call();
+    // Notify onClose only when an established connection dropped: a failed
+    // connect attempt reports onError without ever having connected, and
+    // must not surface as a close. The flag also dedups the onError+onClose
+    // double-fire the transport emits for read errors.
+    if (_wasConnected) {
+      _wasConnected = false;
+      _onClose?.call();
+    }
     if (allowReconnect) {
+      if (_reconnectPending) return;
+      _reconnectPending = true;
       Future.delayed(customReconnectDelayCB?.call() ?? reconnectWait).then((_) {
+        _reconnectPending = false;
         if (_stopped || _disposed) return;
-        _closeHandled = false;
         if (_onBeforeReconnect != null) {
           _onBeforeReconnect?.call().then((value) => transport.connect());
         } else {
@@ -313,7 +319,7 @@ class MqttClient {
     _started = true;
 
     transport.onConnect(() {
-      _closeHandled = false;
+      _wasConnected = true;
       _buf.clear();
       _idTopic.clear();
       _midDispenser.reset();
