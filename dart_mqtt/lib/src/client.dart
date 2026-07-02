@@ -81,9 +81,10 @@ class MqttClient {
 
   /// Publish a message to [topic].
   ///
-  /// For QoS 1 and above the returned future completes when the broker
-  /// acknowledges the message with PUBACK, or when the connection drops
-  /// before the acknowledgment arrives.
+  /// For QoS 1 the returned future completes when the broker acknowledges
+  /// the message with PUBACK, or when the connection drops before the
+  /// acknowledgment arrives. The QoS 2 handshake (PUBREC/PUBCOMP) is not
+  /// implemented, so QoS 2 futures complete immediately after sending.
   Future<void> publish(
     String topic, {
     bool retain = false,
@@ -99,14 +100,19 @@ class MqttClient {
     msg.data = payload ?? Uint8List(0);
     if (qos != MqttQos.qos0) {
       msg.msgid = _midDispenser.getNextMessageIdentifier();
-      if (!_stopped && !_paused && transport.status == ConnectStatus.connected) {
+      // Only QoS 1 is acknowledged with PUBACK; awaiting one for QoS 2
+      // would hang until the connection drops.
+      if (qos == MqttQos.qos1 &&
+          !_stopped &&
+          !_paused &&
+          transport.status == ConnectStatus.connected) {
         final com = Completer<void>();
         _pendingPubacks[msg.msgid] = com;
         _send(msg);
         return com.future;
       }
-      // _send() drops the packet in these states; complete immediately
-      // rather than returning a future that can never finish.
+      // _send() drops the packet when stopped/paused/disconnected; complete
+      // immediately rather than returning a future that can never finish.
     }
     _send(msg);
     return Future.value();

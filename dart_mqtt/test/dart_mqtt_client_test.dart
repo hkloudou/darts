@@ -117,6 +117,19 @@ void main() {
       expect(acked, isTrue);
     });
 
+    test('QoS2 publish completes immediately (PUBREC/PUBCOMP unimplemented)',
+        () async {
+      final transport = FakeTransport();
+      final client = MqttClient(transport)..withClientID('c1');
+      client.start();
+      await pump();
+
+      // Must not wait for an acknowledgment that can never arrive.
+      await client
+          .publish('a/b', qos: MqttQos.qos2, payload: Uint8List.fromList([1]))
+          .timeout(const Duration(seconds: 1));
+    });
+
     test('QoS1 publish future is released when the connection drops',
         () async {
       final transport = FakeTransport();
