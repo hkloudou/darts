@@ -88,10 +88,10 @@ class XTransportWsClient implements ITransportClient {
         assert(_port > 0 && _port < 65536);
 
   Future<WebSocket> getConnectionSocket({Duration? duration}) async {
-    HttpClient? customCient;
+    HttpClient? customClient;
     if (credentials.isSecure) {
-      customCient = HttpClient(context: credentials.securityContext);
-      customCient.badCertificateCallback = (cert, host, port) {
+      customClient = HttpClient(context: credentials.securityContext);
+      customClient.badCertificateCallback = (cert, host, port) {
         if (credentials.onBadCertificate != null) {
           return credentials.onBadCertificate!(
             cert,
@@ -107,18 +107,17 @@ class XTransportWsClient implements ITransportClient {
         name: "ws",
       );
     }
-    // var channel = IOWebSocketChannel.connect(Uri.parse('ws://localhost:1234'));
-    // channel.stream.listen((event) { })
-    var _tmpSocket = await WebSocket.connect(
-      "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
-      protocols: protocols,
-      // headers: {
-      //   "host": credentials.authority,
-      // },
-      customClient: customCient,
-    );
-
-    return _tmpSocket;
+    try {
+      return await WebSocket.connect(
+        "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
+        protocols: protocols,
+        customClient: customClient,
+      ).timeout(duration ?? const Duration(seconds: 60));
+    } finally {
+      // The established WebSocket owns a detached socket; the helper client
+      // (and its idle connection pool) would otherwise leak per connect.
+      customClient?.close();
+    }
   }
 
   /// [WS] connect
@@ -141,7 +140,7 @@ class XTransportWsClient implements ITransportClient {
     }
     status = ConnectStatus.connecting;
     try {
-      _socket = await getConnectionSocket(duration: duration);
+      _socket = await getConnectionSocket(duration: _duration);
       _remoteInfo = RemoteInfo(
         address: "${credentials.isSecure ? "wss" : "ws"}://$_host:$_port$_path",
         host: _host,

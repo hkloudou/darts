@@ -91,8 +91,9 @@ class XtransportCredentials {
       }
       return context;
     }
-    final context =
-        SecurityContext(withTrustedRoots: _caCertificateBytes != null);
-    return context;
+    // No custom CA: use the platform default context, which trusts the
+    // system roots. (Returning SecurityContext(withTrustedRoots: false)
+    // here made every handshake fail certificate validation.)
+    return null;
   }
 }
